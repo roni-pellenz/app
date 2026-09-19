@@ -1,34 +1,44 @@
 import { StyleSheet, Text, View } from "react-native";
 import { ExpenseRow } from "@/components/expenses/expense-row";
 import type { Expense } from "@/expense/expense.types";
-import { theme } from "@/theme/theme";
 
 type ExpenseListCardProps = {
   expenses: Expense[];
   onExpensePress: (expense: Expense) => void;
+  onTogglePayment: (expense: Expense) => void;
+  onDeleteExpense: (expense: Expense) => void;
 };
 
-export function ExpenseListCard({ expenses, onExpensePress }: ExpenseListCardProps) {
+export function ExpenseListCard({
+  expenses,
+  onExpensePress,
+  onTogglePayment,
+  onDeleteExpense
+}: ExpenseListCardProps) {
   if (expenses.length === 0) {
     return (
       <View style={styles.emptyCard}>
         <Text style={styles.emptyTitle}>Nenhuma despesa</Text>
-
         <Text style={styles.emptyText}>Não há despesas para este filtro no mês selecionado.</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.card}>
-      {expenses.map((expense, index) => (
+    <View style={styles.list}>
+      {expenses.map((expense) => (
         <ExpenseRow
           key={expense.id}
           expense={expense}
           onPress={() => {
             onExpensePress(expense);
           }}
-          showDivider={index < expenses.length - 1}
+          onTogglePayment={() => {
+            onTogglePayment(expense);
+          }}
+          onDelete={() => {
+            onDeleteExpense(expense);
+          }}
         />
       ))}
     </View>
@@ -36,11 +46,8 @@ export function ExpenseListCard({ expenses, onExpensePress }: ExpenseListCardPro
 }
 
 const styles = StyleSheet.create({
-  card: {
-    overflow: "hidden",
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
+  list: {
+    gap: 12
   },
 
   emptyCard: {
@@ -49,14 +56,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 22,
     paddingHorizontal: 30,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
+    backgroundColor: "#FFFFFF"
   },
 
   emptyTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.text
+    color: "#0B1437"
   },
 
   emptyText: {
@@ -64,6 +70,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     textAlign: "center",
-    color: theme.colors.textSecondary
+    color: "#62759B"
   }
 });

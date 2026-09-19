@@ -1,15 +1,7 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
-} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useCallback, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { HomeHeader } from "@/components/home/home-header";
@@ -80,39 +72,13 @@ export default function HomeScreen() {
     }, [loadPlanning])
   );
 
-  const swipeResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => {
-        const horizontal = Math.abs(gesture.dx);
-
-        const vertical = Math.abs(gesture.dy);
-
-        return horizontal > 20 && horizontal > vertical * 1.5;
-      },
-
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dx <= -70) {
-          setCompetence((current) => shiftCompetence(current, 1));
-
-          return;
-        }
-
-        if (gesture.dx >= 70) {
-          setCompetence((current) => shiftCompetence(current, -1));
-        }
-      },
-
-      onPanResponderTerminationRequest: () => true
-    })
-  ).current;
-
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <LinearGradient
         colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
         style={styles.gradient}
       >
-        <View style={styles.root} {...swipeResponder.panHandlers}>
+        <View style={styles.root}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
             <HomeHeader name={user?.name ?? ""} />
 

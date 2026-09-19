@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  PanResponder,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,7 +17,13 @@ import { ExpenseFilterTabs } from "@/components/expenses/expense-filter-tabs";
 import { ExpenseListCard } from "@/components/expenses/expense-list-card";
 import { ExpensesHeader } from "@/components/expenses/expenses-header";
 import { MonthSelector } from "@/components/home/month-selector";
-import { getExpenses } from "@/expense/expense.api";
+import {
+  deleteExpense,
+  deleteFutureExpenses,
+  getExpenses,
+  payExpense,
+  unpayExpense
+} from "@/expense/expense.api";
 import type { Expense, ExpenseFilter } from "@/expense/expense.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { getCurrentCompetence, shiftCompetence } from "@/lib/format";
@@ -60,6 +66,7 @@ export default function ExpensesScreen() {
       }
 
       setExpenses(response);
+
       setState("ready");
     } catch (error) {
       if (requestId !== requestIdRef.current) {
@@ -103,29 +110,122 @@ export default function ExpensesScreen() {
     }
   }, [expenses, filter]);
 
-  const swipeResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => {
-        const horizontal = Math.abs(gesture.dx);
+  async function handleTogglePayment(expense: Expense): Promise<void> {
+    if (!token) {
+      return;
+    }
 
-        const vertical = Math.abs(gesture.dy);
+    try {
+      const updatedExpense = expense.paidDate
+        ? await unpayExpense(token, expense.id)
+        : await payExpense(token, expense.id, {
+            paidDate: getTodayApiDate(),
+            paidAmount: expense.amount
+          });
 
-        return horizontal > 20 && horizontal > vertical * 1.5;
-      },
+      setExpenses((current) =>
+        current.map((item) => (item.id === updatedExpense.id ? updatedExpense : item))
+      );
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        await signOut();
 
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dx <= -70) {
-          setCompetence((current) => shiftCompetence(current, 1));
+        return;
+      }
 
-          return;
+      Alert.alert(
+        "Não foi possível atualizar",
+        getApiErrorMessage(error, "Não foi possível alterar o pagamento da despesa.")
+      );
+    }
+  }
+
+  function handleDeleteRequest(expense: Expense): void {
+    if (expense.recurrenceId) {
+      Alert.alert("Excluir despesa recorrente", "Onde deseja aplicar a exclusão?", [
+        {
+          text: "Somente esta despesa",
+          style: "destructive",
+          onPress: () => {
+            void executeDelete(expense, "single");
+          }
+        },
+        {
+          text: "Esta e as próximas",
+          style: "destructive",
+          onPress: () => {
+            void executeDelete(expense, "future");
+          }
+        },
+        {
+          text: "Cancelar",
+          style: "cancel"
         }
+      ]);
 
-        if (gesture.dx >= 70) {
-          setCompetence((current) => shiftCompetence(current, -1));
+      return;
+    }
+
+    if (expense.installmentPlanId) {
+      Alert.alert(
+        "Excluir parcela",
+        "Esta ação excluirá somente a parcela selecionada. As demais parcelas serão mantidas.",
+        [
+          {
+            text: "Cancelar",
+            style: "cancel"
+          },
+          {
+            text: "Excluir",
+            style: "destructive",
+            onPress: () => {
+              void executeDelete(expense, "single");
+            }
+          }
+        ]
+      );
+
+      return;
+    }
+
+    Alert.alert("Excluir despesa", `Deseja excluir "${expense.name}"?`, [
+      {
+        text: "Cancelar",
+        style: "cancel"
+      },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: () => {
+          void executeDelete(expense, "single");
         }
       }
-    })
-  ).current;
+    ]);
+  }
+
+  async function executeDelete(expense: Expense, scope: "single" | "future"): Promise<void> {
+    if (!token) {
+      return;
+    }
+
+    try {
+      if (scope === "future") {
+        await deleteFutureExpenses(token, expense.id);
+      } else {
+        await deleteExpense(token, expense.id);
+      }
+
+      setExpenses((current) => current.filter((item) => item.id !== expense.id));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        await signOut();
+
+        return;
+      }
+
+      Alert.alert("Não foi possível excluir", getApiErrorMessage(error, "Tente novamente."));
+    }
+  }
 
   const tabBarBottom = Math.max(insets.bottom - 14, 14);
 
@@ -135,7 +235,7 @@ export default function ExpensesScreen() {
         colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
         style={styles.gradient}
       >
-        <View style={styles.root} {...swipeResponder.panHandlers}>
+        <View style={styles.root}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
             <ExpensesHeader />
 
@@ -188,6 +288,10 @@ export default function ExpensesScreen() {
                       }
                     });
                   }}
+                  onTogglePayment={(expense) => {
+                    void handleTogglePayment(expense);
+                  }}
+                  onDeleteExpense={handleDeleteRequest}
                 />
               </View>
             )}
@@ -208,6 +312,18 @@ export default function ExpensesScreen() {
       </LinearGradient>
     </SafeAreaView>
   );
+}
+
+function getTodayApiDate(): string {
+  const now = new Date();
+
+  const year = now.getFullYear();
+
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 const styles = StyleSheet.create({

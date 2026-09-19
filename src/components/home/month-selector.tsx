@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatCompetence } from "@/lib/format";
 import { theme } from "@/theme/theme";
 
@@ -9,9 +9,35 @@ type MonthSelectorProps = {
   onNext: () => void;
 };
 
+const SWIPE_THRESHOLD = 45;
+
 export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorProps) {
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) => {
+      const horizontal = Math.abs(gesture.dx);
+
+      const vertical = Math.abs(gesture.dy);
+
+      return horizontal > 12 && horizontal > vertical * 1.4;
+    },
+
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dx <= -SWIPE_THRESHOLD) {
+        onNext();
+
+        return;
+      }
+
+      if (gesture.dx >= SWIPE_THRESHOLD) {
+        onPrevious();
+      }
+    },
+
+    onPanResponderTerminationRequest: () => true
+  });
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       <Pressable
         onPress={onPrevious}
         hitSlop={10}

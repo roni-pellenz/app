@@ -10,6 +10,15 @@ import type {
 } from "@/expense/expense.types";
 import { apiRequest } from "@/lib/api";
 
+type PayExpenseInput = {
+  paidDate: string;
+  paidAmount?: number;
+};
+
+type DeleteExpenseResponse = {
+  success: true;
+};
+
 export function getExpenses(token: string, competence: string): Promise<Expense[]> {
   const params = new URLSearchParams({
     competence
@@ -56,6 +65,25 @@ export function createInstallmentExpense(
   });
 }
 
+export function payExpense(
+  token: string,
+  expenseId: string,
+  input: PayExpenseInput
+): Promise<Expense> {
+  return apiRequest<Expense>(`/expenses/${expenseId}/payment`, {
+    method: "PATCH",
+    token,
+    body: input
+  });
+}
+
+export function unpayExpense(token: string, expenseId: string): Promise<Expense> {
+  return apiRequest<Expense>(`/expenses/${expenseId}/payment`, {
+    method: "DELETE",
+    token
+  });
+}
+
 export function updateExpense(
   token: string,
   expenseId: string,
@@ -89,5 +117,22 @@ export function updateInstallmentPlan(
     method: "PATCH",
     token,
     body: input
+  });
+}
+
+export function deleteExpense(token: string, expenseId: string): Promise<DeleteExpenseResponse> {
+  return apiRequest<DeleteExpenseResponse>(`/expenses/${expenseId}`, {
+    method: "DELETE",
+    token
+  });
+}
+
+export function deleteFutureExpenses(
+  token: string,
+  expenseId: string
+): Promise<DeleteExpenseResponse> {
+  return apiRequest<DeleteExpenseResponse>(`/expenses/${expenseId}/future`, {
+    method: "DELETE",
+    token
   });
 }
