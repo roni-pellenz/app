@@ -1,9 +1,27 @@
 export type ExpenseRecurrenceFrequency = "WEEKLY" | "MONTHLY" | "YEARLY";
 
+export type ExpenseCategory =
+  | "HOUSING"
+  | "FOOD"
+  | "TRANSPORT"
+  | "HEALTH"
+  | "EDUCATION"
+  | "LEISURE"
+  | "SUBSCRIPTIONS"
+  | "UTILITIES"
+  | "ELECTRONICS"
+  | "SHOPPING"
+  | "TAXES"
+  | "FINANCIAL"
+  | "OTHER";
+
 export type ExpenseRecurrenceDetail = {
   id: string;
   name: string;
   amount: number;
+  category: ExpenseCategory | null;
+  notes: string | null;
+  notificationDaysBefore: number | null;
   frequency: ExpenseRecurrenceFrequency;
   dueDay: number;
   plannedPaymentDay: number | null;
@@ -20,6 +38,9 @@ export type InstallmentPlanDetail = {
   installments: number;
   purchaseDate: string;
   firstInstallmentDate: string;
+  category: ExpenseCategory | null;
+  notes: string | null;
+  notificationDaysBefore: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -31,6 +52,9 @@ export type Expense = {
   installmentNumber: number | null;
   name: string;
   amount: number;
+  category: ExpenseCategory | null;
+  notes: string | null;
+  notificationDaysBefore: number | null;
   competence: string;
   dueDate: string;
   plannedPaymentDate: string | null;
@@ -50,6 +74,9 @@ export type ExpenseFilter = "all" | "recurring" | "installment" | "one-off";
 export type CreateExpenseInput = {
   name: string;
   amount: number;
+  category?: ExpenseCategory;
+  notes?: string;
+  notificationDaysBefore?: number;
   competence: string;
   dueDate: string;
   plannedPaymentDate?: string;
@@ -58,6 +85,9 @@ export type CreateExpenseInput = {
 export type CreateRecurringExpenseInput = {
   name: string;
   amount: number;
+  category?: ExpenseCategory;
+  notes?: string;
+  notificationDaysBefore?: number;
   dueDay: number;
   plannedPaymentDay?: number;
   startCompetence: string;
@@ -68,6 +98,9 @@ export type CreateInstallmentExpenseInput = {
   name: string;
   totalAmount: number;
   installments: number;
+  category?: ExpenseCategory;
+  notes?: string;
+  notificationDaysBefore?: number;
   purchaseDate: string;
   firstInstallmentDate: string;
 };
@@ -75,6 +108,9 @@ export type CreateInstallmentExpenseInput = {
 export type UpdateExpenseInput = {
   name?: string;
   amount?: number;
+  category?: ExpenseCategory | null;
+  notes?: string | null;
+  notificationDaysBefore?: number | null;
   competence?: string;
   dueDate?: string;
   plannedPaymentDate?: string | null;
@@ -83,6 +119,9 @@ export type UpdateExpenseInput = {
 export type UpdateRecurringExpenseInput = {
   name?: string;
   amount?: number;
+  category?: ExpenseCategory | null;
+  notes?: string | null;
+  notificationDaysBefore?: number | null;
   dueDay?: number;
   plannedPaymentDay?: number | null;
   endCompetence?: string | null;
@@ -92,6 +131,9 @@ export type UpdateInstallmentPlanInput = {
   name?: string;
   totalAmount?: number;
   installments?: number;
+  category?: ExpenseCategory | null;
+  notes?: string | null;
+  notificationDaysBefore?: number | null;
   purchaseDate?: string;
   firstInstallmentDate?: string;
 };

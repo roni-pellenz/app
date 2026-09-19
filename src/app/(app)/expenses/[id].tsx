@@ -7,7 +7,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { ExpenseDetailRow } from "@/components/expenses/expense-detail-row";
 import { getExpense } from "@/expense/expense.api";
-import { getExpenseAppearance } from "@/expense/expense.appearance";
+import { getExpenseAppearance, getExpenseCategoryLabel } from "@/expense/expense.appearance";
+import { formatExpenseNotification } from "@/expense/expense.metadata";
 import type { ExpenseDetail, ExpenseRecurrenceFrequency } from "@/expense/expense.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { formatCompetence, formatMoney } from "@/lib/format";
@@ -87,7 +88,7 @@ export default function ExpenseDetailScreen() {
 
   const currentExpense = expense;
 
-  const appearance = getExpenseAppearance(currentExpense.name);
+  const appearance = getExpenseAppearance(currentExpense.name, currentExpense.category);
 
   const typeLabel = currentExpense.installmentPlan
     ? "Despesa parcelada"
@@ -156,6 +157,8 @@ export default function ExpenseDetailScreen() {
           ) : (
             <OneOffExpenseDetails expense={currentExpense} />
           )}
+
+          <ExpenseMetadataDetails expense={currentExpense} />
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -292,6 +295,70 @@ function OneOffExpenseDetails({ expense }: { expense: ExpenseDetail }) {
   );
 }
 
+function ExpenseMetadataDetails({ expense }: { expense: ExpenseDetail }) {
+  const hasNotes = Boolean(expense.notes?.trim());
+
+  return (
+    <>
+      <View style={styles.metadataCard}>
+        <ExpenseDetailRow
+          icon="pricetag-outline"
+          label="Categoria"
+          value={getExpenseCategoryLabel(expense.category)}
+          divider={false}
+        />
+      </View>
+
+      {hasNotes ? (
+        <View style={styles.notesCard}>
+          <View style={styles.metadataHeader}>
+            <View style={styles.metadataIcon}>
+              <Ionicons name="document-text-outline" size={21} color="#526D94" />
+            </View>
+
+            <Text style={styles.metadataTitle}>Observações</Text>
+          </View>
+
+          <Text style={styles.notesText}>{expense.notes}</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.notificationCard}>
+        <View
+          style={[
+            styles.notificationIcon,
+            expense.notificationDaysBefore === null
+              ? styles.notificationIconDisabled
+              : styles.notificationIconEnabled
+          ]}
+        >
+          <Ionicons
+            name={
+              expense.notificationDaysBefore === null
+                ? "notifications-off-outline"
+                : "notifications-outline"
+            }
+            size={23}
+            color={
+              expense.notificationDaysBefore === null
+                ? theme.colors.textMuted
+                : theme.colors.primary
+            }
+          />
+        </View>
+
+        <View style={styles.notificationContent}>
+          <Text style={styles.notificationTitle}>Notificação</Text>
+
+          <Text style={styles.notificationText}>
+            {formatExpenseNotification(expense.notificationDaysBefore)}
+          </Text>
+        </View>
+      </View>
+    </>
+  );
+}
+
 function formatDayFromDate(value: string): string {
   const day = value.slice(8, 10);
 
@@ -416,6 +483,96 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.72)"
+  },
+
+  metadataCard: {
+    overflow: "hidden",
+    marginTop: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.72)"
+  },
+
+  notesCard: {
+    marginTop: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    borderRadius: 22,
+    padding: 16,
+    backgroundColor: "rgba(255,255,255,0.72)"
+  },
+
+  metadataHeader: {
+    flexDirection: "row",
+    alignItems: "center"
+  },
+
+  metadataIcon: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    backgroundColor: theme.colors.surfaceMuted
+  },
+
+  metadataTitle: {
+    marginLeft: 10,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#344B70"
+  },
+
+  notesText: {
+    marginTop: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    color: theme.colors.text
+  },
+
+  notificationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    borderRadius: 22,
+    padding: 15,
+    backgroundColor: "rgba(255,255,255,0.72)"
+  },
+
+  notificationIcon: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 13
+  },
+
+  notificationIconEnabled: {
+    backgroundColor: theme.colors.primarySoft
+  },
+
+  notificationIconDisabled: {
+    backgroundColor: theme.colors.surfaceMuted
+  },
+
+  notificationContent: {
+    flex: 1,
+    marginLeft: 13
+  },
+
+  notificationTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.text
+  },
+
+  notificationText: {
+    marginTop: 3,
+    fontSize: 13,
+    color: theme.colors.textSecondary
   },
 
   center: {

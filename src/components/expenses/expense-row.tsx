@@ -23,7 +23,7 @@ const ACTION_WIDTH = 92;
 const SNAP_THRESHOLD = 42;
 
 export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: ExpenseRowProps) {
-  const appearance = getExpenseAppearance(expense.name);
+  const appearance = getExpenseAppearance(expense.name, expense.category);
 
   const status = getExpenseStatus(expense);
 

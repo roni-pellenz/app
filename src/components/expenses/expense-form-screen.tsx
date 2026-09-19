@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
+import { ExpenseMetadataFields } from "@/components/expenses/expense-metadata-fields";
 import { DateInput } from "@/components/forms/date-input";
 import {
   createExpense,
@@ -14,7 +15,7 @@ import {
   updateRecurringExpense
 } from "@/expense/expense.api";
 import { getExpenseAppearance } from "@/expense/expense.appearance";
-import type { ExpenseDetail } from "@/expense/expense.types";
+import type { ExpenseCategory, ExpenseDetail } from "@/expense/expense.types";
 import { getApiErrorMessage } from "@/lib/api";
 import { parseBrazilianDate, parseMonthYear } from "@/lib/date-input";
 import { formatMoney } from "@/lib/format";
@@ -25,6 +26,12 @@ type FormMode = "create" | "edit";
 type FormType = "common" | "installment";
 
 type CommonFrequency = "one-off" | "recurring";
+
+type EditableExpenseMetadata = {
+  category: ExpenseCategory | null;
+  notes: string | null;
+  notificationDaysBefore: number | null;
+};
 
 type ExpenseFormScreenProps = {
   mode: FormMode;
@@ -63,6 +70,20 @@ export function ExpenseFormScreen({
 
   const [amount, setAmount] = useState(initialPlan?.totalAmount ?? initialExpense?.amount ?? 0);
 
+  const [category, setCategory] = useState<ExpenseCategory | null>(
+    initialPlan ? initialPlan.category : (initialExpense?.category ?? null)
+  );
+
+  const [notes, setNotes] = useState(
+    initialPlan ? (initialPlan.notes ?? "") : (initialExpense?.notes ?? "")
+  );
+
+  const [notificationDaysBefore, setNotificationDaysBefore] = useState<number | null>(
+    initialPlan
+      ? initialPlan.notificationDaysBefore
+      : (initialExpense?.notificationDaysBefore ?? null)
+  );
+
   const [dueDay, setDueDay] = useState(
     initialExpense ? String(Number(initialExpense.dueDate.slice(8, 10))) : ""
   );
@@ -89,7 +110,7 @@ export function ExpenseFormScreen({
 
   const [saving, setSaving] = useState(false);
 
-  const appearance = getExpenseAppearance(name || "despesa");
+  const appearance = getExpenseAppearance(name || "despesa", category);
 
   const installmentPreview = useMemo(() => {
     const count = Number(installments);
@@ -169,6 +190,8 @@ export function ExpenseFormScreen({
 
     const trimmedName = name.trim();
 
+    const trimmedNotes = notes.trim();
+
     if (!trimmedName) {
       Alert.alert("Nome obrigatório", "Informe o nome da despesa.");
 
@@ -180,6 +203,24 @@ export function ExpenseFormScreen({
 
       return;
     }
+
+    const createMetadata = {
+      ...(category && {
+        category
+      }),
+      ...(trimmedNotes && {
+        notes: trimmedNotes
+      }),
+      ...(notificationDaysBefore !== null && {
+        notificationDaysBefore
+      })
+    };
+
+    const editableMetadata: EditableExpenseMetadata = {
+      category,
+      notes: trimmedNotes || null,
+      notificationDaysBefore
+    };
 
     if (formType === "installment") {
       const installmentCount = Number(installments);
@@ -207,7 +248,8 @@ export function ExpenseFormScreen({
             totalAmount: amount,
             installments: installmentCount,
             purchaseDate: parsedPurchaseDate,
-            firstInstallmentDate: parsedFirstDate
+            firstInstallmentDate: parsedFirstDate,
+            ...createMetadata
           })
         );
 
@@ -224,7 +266,8 @@ export function ExpenseFormScreen({
           totalAmount: amount,
           installments: installmentCount,
           purchaseDate: parsedPurchaseDate,
-          firstInstallmentDate: parsedFirstDate
+          firstInstallmentDate: parsedFirstDate,
+          ...editableMetadata
         })
       );
 
@@ -271,7 +314,8 @@ export function ExpenseFormScreen({
             startCompetence: competence,
             ...(parsedEnd && {
               endCompetence: parsedEnd
-            })
+            }),
+            ...createMetadata
           })
         );
 
@@ -299,7 +343,8 @@ export function ExpenseFormScreen({
                   amount,
                   numericDueDay,
                   numericPaymentDay,
-                  parsedEnd
+                  parsedEnd,
+                  editableMetadata
                 );
               }
             },
@@ -326,7 +371,8 @@ export function ExpenseFormScreen({
                 trimmedName,
                 amount,
                 numericDueDay,
-                numericPaymentDay
+                numericPaymentDay,
+                editableMetadata
               );
             }
           },
@@ -340,7 +386,8 @@ export function ExpenseFormScreen({
                 amount,
                 numericDueDay,
                 numericPaymentDay,
-                parsedEnd
+                parsedEnd,
+                editableMetadata
               );
             }
           },
@@ -372,7 +419,8 @@ export function ExpenseFormScreen({
           dueDate,
           ...(plannedPaymentDate && {
             plannedPaymentDate
-          })
+          }),
+          ...createMetadata
         })
       );
 
@@ -388,7 +436,8 @@ export function ExpenseFormScreen({
         name: trimmedName,
         amount,
         dueDate,
-        plannedPaymentDate
+        plannedPaymentDate,
+        ...editableMetadata
       })
     );
   }
@@ -399,7 +448,8 @@ export function ExpenseFormScreen({
     currentName: string,
     currentAmount: number,
     currentDueDay: number,
-    currentPaymentDay: number | null
+    currentPaymentDay: number | null,
+    metadata: EditableExpenseMetadata
   ): Promise<void> {
     const currentCompetence = expense.competence.slice(0, 7);
 
@@ -415,7 +465,8 @@ export function ExpenseFormScreen({
         name: currentName,
         amount: currentAmount,
         dueDate,
-        plannedPaymentDate
+        plannedPaymentDate,
+        ...metadata
       })
     );
   }
@@ -427,7 +478,8 @@ export function ExpenseFormScreen({
     currentAmount: number,
     currentDueDay: number,
     currentPaymentDay: number | null,
-    currentEndCompetence: string | null
+    currentEndCompetence: string | null,
+    metadata: EditableExpenseMetadata
   ): Promise<void> {
     await executeSave(() =>
       updateRecurringExpense(currentToken, expense.id, {
@@ -435,7 +487,8 @@ export function ExpenseFormScreen({
         amount: currentAmount,
         dueDay: currentDueDay,
         plannedPaymentDay: currentPaymentDay,
-        endCompetence: currentEndCompetence
+        endCompetence: currentEndCompetence,
+        ...metadata
       })
     );
   }
@@ -522,7 +575,7 @@ export function ExpenseFormScreen({
           <FieldLabel>Nome da despesa</FieldLabel>
 
           <View style={styles.inputBox}>
-            <Ionicons name={appearance.icon} size={24} color={theme.colors.primary} />
+            <Ionicons name={appearance.icon} size={24} color={appearance.color} />
 
             <TextInput
               value={name}
@@ -683,6 +736,15 @@ export function ExpenseFormScreen({
               </Text>
             </>
           )}
+
+          <ExpenseMetadataFields
+            category={category}
+            onCategoryChange={setCategory}
+            notes={notes}
+            onNotesChange={setNotes}
+            notificationDaysBefore={notificationDaysBefore}
+            onNotificationDaysBeforeChange={setNotificationDaysBefore}
+          />
 
           <View style={styles.bottomSpacer} />
         </ScrollView>
