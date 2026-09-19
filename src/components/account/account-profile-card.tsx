@@ -1,0 +1,97 @@
+import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, View } from "react-native";
+import { theme } from "@/theme/theme";
+
+type AccountProfileCardProps = {
+  name: string;
+  surname: string;
+  email: string;
+};
+
+export function AccountProfileCard({ name, surname, email }: AccountProfileCardProps) {
+  const fullName = [name.trim(), surname.trim()].filter(Boolean).join(" ");
+
+  const initials = getInitials(name, surname);
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.avatar}>
+        <Text style={styles.initials}>{initials}</Text>
+      </View>
+
+      <View style={styles.content}>
+        <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit>
+          {fullName}
+        </Text>
+
+        <Text style={styles.email} numberOfLines={1} adjustsFontSizeToFit>
+          {email}
+        </Text>
+      </View>
+
+      <Ionicons name="chevron-forward" size={21} color="#52719B" />
+    </View>
+  );
+}
+
+function getInitials(name: string, surname: string): string {
+  const firstInitial = name.trim().charAt(0);
+
+  const lastInitial = surname.trim().charAt(0);
+
+  const initials = `${firstInitial}${lastInitial}`.toUpperCase();
+
+  return initials || "?";
+}
+
+const styles = StyleSheet.create({
+  card: {
+    minHeight: 100,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 22,
+    paddingHorizontal: 17,
+    paddingVertical: 13,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadow.card
+  },
+
+  avatar: {
+    width: 68,
+    height: 68,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 34,
+    backgroundColor: "#DCEBFC"
+  },
+
+  initials: {
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: "800",
+    letterSpacing: -0.9,
+    color: "#06183C"
+  },
+
+  content: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 18,
+    marginRight: 8
+  },
+
+  name: {
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: "800",
+    letterSpacing: -0.55,
+    color: theme.colors.text
+  },
+
+  email: {
+    marginTop: 3,
+    fontSize: 15,
+    lineHeight: 19,
+    color: "#52719B"
+  }
+});
