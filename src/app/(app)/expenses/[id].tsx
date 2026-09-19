@@ -174,15 +174,15 @@ function RecurringExpenseDetails({ expense }: { expense: ExpenseDetail }) {
       <ExpenseDetailRow
         icon="calendar-outline"
         label="Vencimento"
-        value={`Dia ${formatDay(recurrence.dueDay)}`}
+        value={`Dia ${formatDayFromDate(expense.dueDate)}`}
       />
 
       <ExpenseDetailRow
         icon="card-outline"
         label="Pagamento"
         value={
-          recurrence.plannedPaymentDay !== null
-            ? `Dia ${formatDay(recurrence.plannedPaymentDay)}`
+          expense.plannedPaymentDate
+            ? `Dia ${formatDayFromDate(expense.plannedPaymentDate)}`
             : "Não definido"
         }
       />
@@ -292,8 +292,10 @@ function OneOffExpenseDetails({ expense }: { expense: ExpenseDetail }) {
   );
 }
 
-function formatDay(day: number): string {
-  return String(day).padStart(2, "0");
+function formatDayFromDate(value: string): string {
+  const day = value.slice(8, 10);
+
+  return day || "--";
 }
 
 function formatDate(value: string): string {

@@ -17,7 +17,9 @@ export function ExpenseDetailRow({ icon, label, value, divider = true }: Expense
     <View style={[styles.row, divider && styles.divider]}>
       <Ionicons name={icon} size={22} color="#526D94" />
 
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label} numberOfLines={1}>
+        {label}
+      </Text>
 
       <Text style={styles.value} numberOfLines={2}>
         {value}
@@ -31,7 +33,7 @@ const styles = StyleSheet.create({
     minHeight: 59,
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16
+    marginHorizontal: 14
   },
 
   divider: {
@@ -40,14 +42,15 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    marginLeft: 18,
+    flexShrink: 1,
+    marginLeft: 14,
     fontSize: 14,
     color: "#526D94"
   },
 
   value: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 8,
     fontSize: 14,
     lineHeight: 18,
     textAlign: "right",

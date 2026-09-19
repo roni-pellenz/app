@@ -181,7 +181,12 @@ export default function ExpensesScreen() {
                 <ExpenseListCard
                   expenses={filteredExpenses}
                   onExpensePress={(expense) => {
-                    router.push(`../expenses/${expense.id}`);
+                    router.push({
+                      pathname: "/expenses/[id]",
+                      params: {
+                        id: expense.id
+                      }
+                    });
                   }}
                 />
               </View>
@@ -191,7 +196,12 @@ export default function ExpensesScreen() {
           <AddExpenseButton
             bottom={tabBarBottom + 73}
             onPress={() => {
-              router.push("../expenses/new");
+              router.push({
+                pathname: "/expenses/new",
+                params: {
+                  competence
+                }
+              });
             }}
           />
         </View>

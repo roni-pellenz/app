@@ -51,38 +51,29 @@ export function ExpenseFormScreen({
 
   const initialFrequency: CommonFrequency = initialRecurrence ? "recurring" : "one-off";
 
+  const initialEndCompetence = initialRecurrence?.endCompetence
+    ? formatIsoCompetenceForInput(initialRecurrence.endCompetence)
+    : "";
+
   const [formType, setFormType] = useState<FormType>(initialType);
 
   const [frequency, setFrequency] = useState<CommonFrequency>(initialFrequency);
 
-  const [name, setName] = useState(
-    initialPlan?.name ?? initialRecurrence?.name ?? initialExpense?.name ?? ""
-  );
+  const [name, setName] = useState(initialPlan?.name ?? initialExpense?.name ?? "");
 
   const [amount, setAmount] = useState(initialPlan?.totalAmount ?? initialExpense?.amount ?? 0);
 
   const [dueDay, setDueDay] = useState(
-    initialRecurrence
-      ? String(initialRecurrence.dueDay)
-      : initialExpense
-        ? String(Number(initialExpense.dueDate.slice(8, 10)))
-        : ""
+    initialExpense ? String(Number(initialExpense.dueDate.slice(8, 10))) : ""
   );
 
   const [paymentDay, setPaymentDay] = useState(
-    initialRecurrence?.plannedPaymentDay !== null &&
-      initialRecurrence?.plannedPaymentDay !== undefined
-      ? String(initialRecurrence.plannedPaymentDay)
-      : initialExpense?.plannedPaymentDate
-        ? String(Number(initialExpense.plannedPaymentDate.slice(8, 10)))
-        : ""
-  );
-
-  const [endCompetence, setEndCompetence] = useState(
-    initialRecurrence?.endCompetence
-      ? formatIsoCompetenceForInput(initialRecurrence.endCompetence)
+    initialExpense?.plannedPaymentDate
+      ? String(Number(initialExpense.plannedPaymentDate.slice(8, 10)))
       : ""
   );
+
+  const [endCompetence, setEndCompetence] = useState(initialEndCompetence);
 
   const [installments, setInstallments] = useState(
     initialPlan ? String(initialPlan.installments) : "2"
@@ -100,14 +91,24 @@ export function ExpenseFormScreen({
 
   const appearance = getExpenseAppearance(name || "despesa");
 
-  const installmentAmount = useMemo(() => {
+  const installmentPreview = useMemo(() => {
     const count = Number(installments);
 
-    if (count < 1 || amount < 1) {
-      return 0;
+    if (!Number.isInteger(count) || count < 1 || amount < 1) {
+      return {
+        firstAmount: 0,
+        hasRemainder: false
+      };
     }
 
-    return Math.floor(amount / count);
+    const baseAmount = Math.floor(amount / count);
+
+    const remainder = amount % count;
+
+    return {
+      firstAmount: baseAmount + (remainder > 0 ? 1 : 0),
+      hasRemainder: remainder > 0
+    };
   }, [amount, installments]);
 
   function selectFormType(nextType: FormType): void {
@@ -278,6 +279,37 @@ export function ExpenseFormScreen({
       }
 
       if (!initialExpense) {
+        return;
+      }
+
+      const endCompetenceChanged = endCompetence !== initialEndCompetence;
+
+      if (endCompetenceChanged) {
+        Alert.alert(
+          "Alteração da recorrência",
+          'Você alterou "Repetir até". Essa alteração afeta a recorrência e só pode ser aplicada a esta e às próximas despesas.',
+          [
+            {
+              text: "Esta e as próximas",
+              onPress: () => {
+                void saveThisAndFuture(
+                  token,
+                  initialExpense,
+                  trimmedName,
+                  amount,
+                  numericDueDay,
+                  numericPaymentDay,
+                  parsedEnd
+                );
+              }
+            },
+            {
+              text: "Cancelar",
+              style: "cancel"
+            }
+          ]
+        );
+
         return;
       }
 
@@ -612,11 +644,17 @@ export function ExpenseFormScreen({
                 </View>
 
                 <View style={styles.column}>
-                  <FieldLabel>Valor de cada parcela</FieldLabel>
+                  <FieldLabel>Valor da 1ª parcela</FieldLabel>
 
-                  <ReadOnlyBox text={formatMoney(installmentAmount)} />
+                  <ReadOnlyBox text={formatMoney(installmentPreview.firstAmount)} />
                 </View>
               </View>
+
+              {installmentPreview.hasRemainder ? (
+                <Text style={styles.installmentHelper}>
+                  Algumas parcelas podem variar R$ 0,01 para fechar exatamente o valor total.
+                </Text>
+              ) : null}
 
               <View style={styles.twoColumns}>
                 <View style={styles.column}>
@@ -849,6 +887,13 @@ const styles = StyleSheet.create({
   },
 
   helper: {
+    marginTop: 6,
+    fontSize: 11,
+    lineHeight: 15,
+    color: "#63799A"
+  },
+
+  installmentHelper: {
     marginTop: 6,
     fontSize: 11,
     lineHeight: 15,
