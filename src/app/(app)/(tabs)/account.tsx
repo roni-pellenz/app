@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
@@ -9,18 +10,28 @@ import { theme } from "@/theme/theme";
 export default function AccountScreen() {
   const { user, signOut } = useAuth();
 
+  function openProfile(): void {
+    router.push("/account/profile");
+  }
+
+  function openSecurity(): void {
+    router.push("/account/security");
+  }
+
   const settingsItems: AccountMenuCardItem[] = [
     {
       key: "profile",
       icon: "person-outline",
       title: "Meus dados",
-      subtitle: "Nome, e-mail e informações pessoais"
+      subtitle: "Nome, e-mail e informações pessoais",
+      onPress: openProfile
     },
     {
       key: "security",
       icon: "shield-checkmark-outline",
       title: "Segurança",
-      subtitle: "Senha e autenticação"
+      subtitle: "Senha e autenticação",
+      onPress: openSecurity
     },
     {
       key: "preferences",
@@ -70,6 +81,7 @@ export default function AccountScreen() {
               name={user?.name ?? ""}
               surname={user?.surname ?? ""}
               email={user?.email ?? ""}
+              onPress={openProfile}
             />
           </View>
 

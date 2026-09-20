@@ -15,8 +15,11 @@ import {
 import type {
   AuthSession,
   AuthUser,
+  ChangePasswordInput,
+  DeleteAccountInput,
   LoginResponse,
-  SignInInput
+  SignInInput,
+  UpdateProfileInput
 } from "@/authentication/auth.types";
 import { ApiError, apiRequest } from "@/lib/api";
 
@@ -27,6 +30,9 @@ type AuthContextValue = {
   isLoading: boolean;
   signIn: (input: SignInInput) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<AuthUser>;
+  deleteAccount: (input: DeleteAccountInput) => Promise<void>;
+  changePassword: (input: ChangePasswordInput) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -117,9 +123,70 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // A sessão local sempre será encerrada.
     } finally {
       await clearStoredSession();
+
       setSession(null);
     }
   }, [session?.token]);
+
+  const updateProfile = useCallback(
+    async (input: UpdateProfileInput): Promise<AuthUser> => {
+      if (!session?.token) {
+        throw new Error("Sessão indisponível.");
+      }
+
+      const updatedUser = await apiRequest<AuthUser>("/users/me", {
+        method: "PATCH",
+        token: session.token,
+        body: input
+      });
+
+      const nextSession: AuthSession = {
+        token: session.token,
+        user: updatedUser
+      };
+
+      await saveStoredSession(nextSession);
+
+      setSession(nextSession);
+
+      return updatedUser;
+    },
+    [session]
+  );
+
+  const deleteAccount = useCallback(
+    async (input: DeleteAccountInput): Promise<void> => {
+      if (!session?.token) {
+        throw new Error("Sessão indisponível.");
+      }
+
+      await apiRequest<{ success: true }>("/users/me", {
+        method: "DELETE",
+        token: session.token,
+        body: input
+      });
+
+      await clearStoredSession();
+
+      setSession(null);
+    },
+    [session?.token]
+  );
+
+  const changePassword = useCallback(
+    async (input: ChangePasswordInput): Promise<void> => {
+      if (!session?.token) {
+        throw new Error("Sessão indisponível.");
+      }
+
+      await apiRequest<{ success: true }>("/authentication/password", {
+        method: "PATCH",
+        token: session.token,
+        body: input
+      });
+    },
+    [session?.token]
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -128,9 +195,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isAuthenticated: session !== null,
       isLoading,
       signIn,
-      signOut
+      signOut,
+      updateProfile,
+      deleteAccount,
+      changePassword
     }),
-    [session, isLoading, signIn, signOut]
+    [session, isLoading, signIn, signOut, updateProfile, deleteAccount, changePassword]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

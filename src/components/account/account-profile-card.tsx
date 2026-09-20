@@ -1,20 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { theme } from "@/theme/theme";
 
 type AccountProfileCardProps = {
   name: string;
   surname: string;
   email: string;
+  onPress: () => void;
 };
 
-export function AccountProfileCard({ name, surname, email }: AccountProfileCardProps) {
+export function AccountProfileCard({ name, surname, email, onPress }: AccountProfileCardProps) {
   const fullName = [name.trim(), surname.trim()].filter(Boolean).join(" ");
 
   const initials = getInitials(name, surname);
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Abrir meus dados"
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
       <View style={styles.avatar}>
         <Text style={styles.initials}>{initials}</Text>
       </View>
@@ -30,7 +36,7 @@ export function AccountProfileCard({ name, surname, email }: AccountProfileCardP
       </View>
 
       <Ionicons name="chevron-forward" size={21} color="#52719B" />
-    </View>
+    </Pressable>
   );
 }
 
@@ -54,6 +60,10 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     backgroundColor: theme.colors.surface,
     ...theme.shadow.card
+  },
+
+  pressed: {
+    opacity: 0.68
   },
 
   avatar: {
