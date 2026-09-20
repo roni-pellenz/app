@@ -33,6 +33,13 @@ export function MonthlySummaryCard({
   const commitmentText =
     commitment === null ? "Sem receitas planejadas" : `${commitment}% comprometido`;
 
+  const availableValueStyle =
+    available < 0
+      ? styles.availableValueNegative
+      : available > 0
+        ? styles.availableValuePositive
+        : styles.availableValueNeutral;
+
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Resumo do mês</Text>
@@ -40,57 +47,62 @@ export function MonthlySummaryCard({
       <View style={styles.valuesRow}>
         <Pressable
           onPress={onIncomePress}
-          style={({ pressed }) => [
-            styles.valueColumn,
-            styles.clickableColumn,
-            pressed && styles.columnPressed
-          ]}
+          style={({ pressed }) => [styles.valueColumn, pressed && styles.columnPressed]}
         >
           <View style={styles.labelRow}>
             <Text style={styles.label}>Receitas</Text>
 
-            <Ionicons name="chevron-forward" size={13} color={theme.colors.textMuted} />
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
           </View>
 
-          <Text style={[styles.value, styles.incomeValue]} numberOfLines={1} adjustsFontSizeToFit>
+          <Text
+            style={[styles.value, styles.incomeValue]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
             {formatMoney(income)}
           </Text>
         </Pressable>
 
+        <View style={styles.columnDivider} />
+
         <Pressable
           onPress={onExpensePress}
-          style={({ pressed }) => [
-            styles.valueColumn,
-            styles.clickableColumn,
-            pressed && styles.columnPressed
-          ]}
+          style={({ pressed }) => [styles.valueColumn, pressed && styles.columnPressed]}
         >
           <View style={styles.labelRow}>
             <Text style={styles.label}>Despesas</Text>
 
-            <Ionicons name="chevron-forward" size={13} color={theme.colors.textMuted} />
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
           </View>
 
-          <Text style={[styles.value, styles.expenseValue]} numberOfLines={1} adjustsFontSizeToFit>
+          <Text
+            style={[styles.value, styles.expenseValue]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
             {formatMoney(expenses)}
           </Text>
         </Pressable>
+      </View>
 
-        <View style={[styles.valueColumn, styles.availableColumn]}>
-          <Text style={styles.label}>Disponível</Text>
+      <View style={styles.availableCard}>
+        <Text style={styles.availableLabel}>Disponível</Text>
 
-          <Text
-            style={[styles.value, styles.availableValue]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {formatMoney(available)}
-          </Text>
-        </View>
+        <Text
+          style={[styles.availableValue, availableValueStyle]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
+          {formatMoney(available)}
+        </Text>
       </View>
 
       <View style={styles.progressTrack}>
-        {progress > 0 && (
+        {progress > 0 ? (
           <LinearGradient
             colors={["#2BD49B", "#0DBD82"]}
             start={{
@@ -108,13 +120,13 @@ export function MonthlySummaryCard({
               }
             ]}
           />
-        )}
+        ) : null}
       </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>{commitmentText}</Text>
 
-        <Ionicons name="information-circle-outline" size={16} color={theme.colors.textMuted} />
+        <Ionicons name="information-circle-outline" size={17} color={theme.colors.textMuted} />
       </View>
     </View>
   );
@@ -139,30 +151,27 @@ const styles = StyleSheet.create({
 
   valuesRow: {
     flexDirection: "row",
-    alignItems: "stretch",
-    gap: 7
+    alignItems: "stretch"
   },
 
   valueColumn: {
     flex: 1,
     minWidth: 0,
+    minHeight: 62,
     justifyContent: "center",
-    paddingVertical: 8
-  },
-
-  clickableColumn: {
     borderRadius: 12,
-    paddingHorizontal: 7
+    paddingHorizontal: 9,
+    paddingVertical: 7
   },
 
   columnPressed: {
     backgroundColor: theme.colors.surfaceMuted
   },
 
-  availableColumn: {
-    borderRadius: 12,
-    paddingHorizontal: 9,
-    backgroundColor: theme.colors.primarySoft
+  columnDivider: {
+    width: StyleSheet.hairlineWidth,
+    marginHorizontal: 5,
+    backgroundColor: theme.colors.border
   },
 
   labelRow: {
@@ -173,14 +182,15 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 10,
+    fontSize: 11,
     color: theme.colors.textSecondary
   },
 
   value: {
-    fontSize: 14,
+    fontSize: 17,
+    lineHeight: 21,
     fontWeight: "800",
-    letterSpacing: -0.25
+    letterSpacing: -0.35
   },
 
   incomeValue: {
@@ -191,14 +201,47 @@ const styles = StyleSheet.create({
     color: theme.colors.danger
   },
 
+  availableCard: {
+    minHeight: 86,
+    justifyContent: "center",
+    marginTop: 14,
+    borderRadius: 18,
+    paddingHorizontal: 17,
+    paddingVertical: 13,
+    backgroundColor: theme.colors.primarySoft
+  },
+
+  availableLabel: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "600",
+    color: theme.colors.textSecondary
+  },
+
   availableValue: {
+    marginTop: 3,
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: "800",
+    letterSpacing: -0.7
+  },
+
+  availableValueNegative: {
+    color: theme.colors.danger
+  },
+
+  availableValuePositive: {
+    color: theme.colors.success
+  },
+
+  availableValueNeutral: {
     color: theme.colors.primary
   },
 
   progressTrack: {
     height: 12,
     overflow: "hidden",
-    marginTop: 18,
+    marginTop: 15,
     borderRadius: 999,
     backgroundColor: theme.colors.progressTrack
   },
