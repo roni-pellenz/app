@@ -55,8 +55,8 @@ const tabs: Array<{
 export function AppTabBar({ activeRouteName }: AppTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  function navigate(definition: TabDefinition, selected: boolean): void {
-    if (selected) {
+  function navigate(definition: TabDefinition, exactSelected: boolean): void {
+    if (exactSelected) {
       return;
     }
 
@@ -76,13 +76,16 @@ export function AppTabBar({ activeRouteName }: AppTabBarProps) {
       <BlurView intensity={95} tint="light" style={styles.blur}>
         <View style={styles.bar}>
           {tabs.map(({ routeName, definition }) => {
-            const selected = activeRouteName === routeName;
+            const exactSelected = activeRouteName === routeName;
+
+            const selected =
+              exactSelected || (activeRouteName === "incomes" && routeName === "index");
 
             return (
               <Pressable
                 key={routeName}
                 onPress={() => {
-                  navigate(definition, selected);
+                  navigate(definition, exactSelected);
                 }}
                 accessibilityRole="button"
                 accessibilityState={

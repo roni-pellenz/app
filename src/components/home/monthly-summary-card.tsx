@@ -1,15 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatMoney } from "@/lib/format";
 import type { MonthlyPlanning } from "@/planning/planning.types";
 import { theme } from "@/theme/theme";
 
 type MonthlySummaryCardProps = {
   planning: MonthlyPlanning;
+  onIncomePress: () => void;
+  onExpensePress: () => void;
 };
 
-export function MonthlySummaryCard({ planning }: MonthlySummaryCardProps) {
+export function MonthlySummaryCard({
+  planning,
+  onIncomePress,
+  onExpensePress
+}: MonthlySummaryCardProps) {
   const income = planning.incomes.plannedAmount;
 
   const expenses = planning.expenses.plannedAmount;
@@ -32,21 +38,43 @@ export function MonthlySummaryCard({ planning }: MonthlySummaryCardProps) {
       <Text style={styles.title}>Resumo do mês</Text>
 
       <View style={styles.valuesRow}>
-        <View style={styles.valueColumn}>
-          <Text style={styles.label}>Receitas</Text>
+        <Pressable
+          onPress={onIncomePress}
+          style={({ pressed }) => [
+            styles.valueColumn,
+            styles.clickableColumn,
+            pressed && styles.columnPressed
+          ]}
+        >
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Receitas</Text>
+
+            <Ionicons name="chevron-forward" size={13} color={theme.colors.textMuted} />
+          </View>
 
           <Text style={[styles.value, styles.incomeValue]} numberOfLines={1} adjustsFontSizeToFit>
             {formatMoney(income)}
           </Text>
-        </View>
+        </Pressable>
 
-        <View style={styles.valueColumn}>
-          <Text style={styles.label}>Despesas</Text>
+        <Pressable
+          onPress={onExpensePress}
+          style={({ pressed }) => [
+            styles.valueColumn,
+            styles.clickableColumn,
+            pressed && styles.columnPressed
+          ]}
+        >
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>Despesas</Text>
+
+            <Ionicons name="chevron-forward" size={13} color={theme.colors.textMuted} />
+          </View>
 
           <Text style={[styles.value, styles.expenseValue]} numberOfLines={1} adjustsFontSizeToFit>
             {formatMoney(expenses)}
           </Text>
-        </View>
+        </Pressable>
 
         <View style={[styles.valueColumn, styles.availableColumn]}>
           <Text style={styles.label}>Disponível</Text>
@@ -122,14 +150,29 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
 
+  clickableColumn: {
+    borderRadius: 12,
+    paddingHorizontal: 7
+  },
+
+  columnPressed: {
+    backgroundColor: theme.colors.surfaceMuted
+  },
+
   availableColumn: {
     borderRadius: 12,
     paddingHorizontal: 9,
     backgroundColor: theme.colors.primarySoft
   },
 
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 5
+  },
+
   label: {
-    marginBottom: 5,
     fontSize: 10,
     color: theme.colors.textSecondary
   },

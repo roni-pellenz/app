@@ -21,6 +21,14 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        name="incomes"
+        options={{
+          title: "Receitas",
+          href: null
+        }}
+      />
+
+      <Tabs.Screen
         name="expenses"
         options={{
           title: "Despesas"

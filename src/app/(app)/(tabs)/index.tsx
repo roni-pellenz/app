@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -119,7 +119,15 @@ export default function HomeScreen() {
 
             {state === "ready" && planning && (
               <>
-                <MonthlySummaryCard planning={planning} />
+                <MonthlySummaryCard
+                  planning={planning}
+                  onIncomePress={() => {
+                    router.push("/incomes");
+                  }}
+                  onExpensePress={() => {
+                    router.navigate("/expenses");
+                  }}
+                />
 
                 <View style={styles.metricsContainer}>
                   <HomeMetricsGrid planning={planning} />
