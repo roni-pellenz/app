@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { ExpenseDetailRow } from "@/components/expenses/expense-detail-row";
 import { getIncome } from "@/income/income.api";
-import type { Income } from "@/income/income.types";
+import type { IncomeDetail, IncomeRecurrenceFrequency } from "@/income/income.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { formatCompetence, formatMoney } from "@/lib/format";
 import { theme } from "@/theme/theme";
@@ -19,7 +19,7 @@ export default function IncomeDetailScreen() {
 
   const { token, signOut } = useAuth();
 
-  const [income, setIncome] = useState<Income | null>(null);
+  const [income, setIncome] = useState<IncomeDetail | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -84,7 +84,18 @@ export default function IncomeDetailScreen() {
     );
   }
 
-  const recurring = income.recurrenceId !== null;
+  const currentIncome = income;
+
+  const recurring = currentIncome.recurrence !== null;
+
+  function handleEdit(): void {
+    router.push({
+      pathname: "/incomes/edit/[id]",
+      params: {
+        id: currentIncome.id
+      }
+    });
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -104,6 +115,10 @@ export default function IncomeDetailScreen() {
 
               <Text style={styles.navButtonText}>Voltar</Text>
             </Pressable>
+
+            <Pressable onPress={handleEdit}>
+              <Text style={styles.editText}>Editar</Text>
+            </Pressable>
           </View>
 
           <View style={styles.hero}>
@@ -115,7 +130,7 @@ export default function IncomeDetailScreen() {
               />
             </View>
 
-            <Text style={styles.name}>{income.name}</Text>
+            <Text style={styles.name}>{currentIncome.name}</Text>
 
             <View style={styles.typeBadge}>
               <Text style={styles.typeText}>
@@ -123,39 +138,110 @@ export default function IncomeDetailScreen() {
               </Text>
             </View>
 
-            <Text style={styles.amount}>{formatMoney(income.amount)}</Text>
+            <Text style={styles.amount}>{formatMoney(currentIncome.amount)}</Text>
           </View>
 
-          <View style={styles.detailCard}>
-            <ExpenseDetailRow
-              icon="calendar-outline"
-              label="Recebimento"
-              value={formatDate(income.expectedDate)}
-            />
-
-            <ExpenseDetailRow
-              icon="calendar-outline"
-              label="Competência"
-              value={formatCompetence(income.competence.slice(0, 7))}
-            />
-
-            <ExpenseDetailRow
-              icon={income.receivedDate ? "checkmark-circle-outline" : "time-outline"}
-              label="Status"
-              value={income.receivedDate ? "Recebida" : "Prevista"}
-            />
-
-            <ExpenseDetailRow
-              icon="cash-outline"
-              label="Recebida em"
-              value={income.receivedDate ? formatDate(income.receivedDate) : "Ainda não recebida"}
-              divider={false}
-            />
-          </View>
+          {currentIncome.recurrence ? (
+            <RecurringIncomeDetails income={currentIncome} />
+          ) : (
+            <OneOffIncomeDetails income={currentIncome} />
+          )}
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );
+}
+
+function RecurringIncomeDetails({ income }: { income: IncomeDetail }) {
+  const recurrence = income.recurrence;
+
+  if (!recurrence) {
+    return null;
+  }
+
+  return (
+    <View style={styles.detailCard}>
+      <ExpenseDetailRow
+        icon="calendar-outline"
+        label="Recebimento"
+        value={`Dia ${formatDayFromDate(income.expectedDate)}`}
+      />
+
+      <ExpenseDetailRow
+        icon="calendar-outline"
+        label="Competência"
+        value={formatCompetence(income.competence.slice(0, 7))}
+      />
+
+      <ExpenseDetailRow
+        icon="sync-outline"
+        label="Frequência"
+        value={formatFrequency(recurrence.frequency)}
+      />
+
+      <ExpenseDetailRow
+        icon="calendar-outline"
+        label="Repetir até"
+        value={
+          recurrence.endCompetence
+            ? formatCompetence(recurrence.endCompetence.slice(0, 7))
+            : "Sem data final"
+        }
+      />
+
+      <ExpenseDetailRow
+        icon={income.receivedDate ? "checkmark-circle-outline" : "time-outline"}
+        label="Status"
+        value={income.receivedDate ? "Recebida" : "Prevista"}
+      />
+
+      <ExpenseDetailRow
+        icon="cash-outline"
+        label="Recebida em"
+        value={income.receivedDate ? formatDate(income.receivedDate) : "Ainda não recebida"}
+        divider={false}
+      />
+    </View>
+  );
+}
+
+function OneOffIncomeDetails({ income }: { income: IncomeDetail }) {
+  return (
+    <View style={styles.detailCard}>
+      <ExpenseDetailRow
+        icon="calendar-outline"
+        label="Recebimento"
+        value={formatDate(income.expectedDate)}
+      />
+
+      <ExpenseDetailRow
+        icon="calendar-outline"
+        label="Competência"
+        value={formatCompetence(income.competence.slice(0, 7))}
+      />
+
+      <ExpenseDetailRow icon="document-text-outline" label="Tipo" value="Pontual" />
+
+      <ExpenseDetailRow
+        icon={income.receivedDate ? "checkmark-circle-outline" : "time-outline"}
+        label="Status"
+        value={income.receivedDate ? "Recebida" : "Prevista"}
+      />
+
+      <ExpenseDetailRow
+        icon="cash-outline"
+        label="Recebida em"
+        value={income.receivedDate ? formatDate(income.receivedDate) : "Ainda não recebida"}
+        divider={false}
+      />
+    </View>
+  );
+}
+
+function formatDayFromDate(value: string): string {
+  const day = value.slice(8, 10);
+
+  return day || "--";
 }
 
 function formatDate(value: string): string {
@@ -166,6 +252,20 @@ function formatDate(value: string): string {
   }
 
   return `${day}/${month}/${year}`;
+}
+
+function formatFrequency(frequency: IncomeRecurrenceFrequency): string {
+  switch (frequency) {
+    case "WEEKLY":
+      return "Semanal";
+
+    case "YEARLY":
+      return "Anual";
+
+    case "MONTHLY":
+    default:
+      return "Mensal";
+  }
 }
 
 const styles = StyleSheet.create({
@@ -187,7 +287,8 @@ const styles = StyleSheet.create({
   navigation: {
     height: 46,
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "space-between"
   },
 
   navButton: {
@@ -197,6 +298,12 @@ const styles = StyleSheet.create({
 
   navButtonText: {
     marginLeft: -3,
+    fontSize: 17,
+    fontWeight: "600",
+    color: theme.colors.primary
+  },
+
+  editText: {
     fontSize: 17,
     fontWeight: "600",
     color: theme.colors.primary

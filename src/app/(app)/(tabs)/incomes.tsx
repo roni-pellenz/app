@@ -2,8 +2,9 @@ import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
+import { AddIncomeButton } from "@/components/incomes/add-income-button";
 import { IncomeFilterTabs } from "@/components/incomes/income-filter-tabs";
 import { IncomeRow } from "@/components/incomes/income-row";
 import { MonthSelector } from "@/components/home/month-selector";
@@ -17,6 +18,8 @@ type ScreenState = "loading" | "ready" | "error";
 
 export default function IncomesScreen() {
   const { token, signOut } = useAuth();
+
+  const insets = useSafeAreaInsets();
 
   const [competence, setCompetence] = useState(getCurrentCompetence());
 
@@ -91,95 +94,111 @@ export default function IncomesScreen() {
     [filteredIncomes]
   );
 
+  const tabBarBottom = Math.max(insets.bottom - 14, 14);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <LinearGradient
         colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
         style={styles.gradient}
       >
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Receitas</Text>
+        <View style={styles.root}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Receitas</Text>
 
-            <Text style={styles.subtitle}>Cadastre suas entradas e acompanhe sua renda.</Text>
-          </View>
-
-          <View style={styles.monthContainer}>
-            <MonthSelector
-              competence={competence}
-              onPrevious={() => {
-                setCompetence((current) => shiftCompetence(current, -1));
-              }}
-              onNext={() => {
-                setCompetence((current) => shiftCompetence(current, 1));
-              }}
-            />
-          </View>
-
-          <IncomeFilterTabs value={filter} onChange={setFilter} />
-
-          {state === "loading" && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={styles.subtitle}>Cadastre suas entradas e acompanhe sua renda.</Text>
             </View>
-          )}
 
-          {state === "error" && (
-            <View style={styles.errorCard}>
-              <Text style={styles.errorTitle}>Não foi possível carregar</Text>
-
-              <Text style={styles.errorText}>{errorMessage}</Text>
-
-              <Pressable
-                onPress={() => {
-                  void loadIncomes();
+            <View style={styles.monthContainer}>
+              <MonthSelector
+                competence={competence}
+                onPrevious={() => {
+                  setCompetence((current) => shiftCompetence(current, -1));
                 }}
-                style={({ pressed }) => [styles.retryButton, pressed && styles.retryPressed]}
-              >
-                <Text style={styles.retryText}>Tentar novamente</Text>
-              </Pressable>
+                onNext={() => {
+                  setCompetence((current) => shiftCompetence(current, 1));
+                }}
+              />
             </View>
-          )}
 
-          {state === "ready" && (
-            <>
-              <View style={styles.summary}>
-                <Text style={styles.summaryLabel}>Receitas previstas</Text>
+            <IncomeFilterTabs value={filter} onChange={setFilter} />
 
-                <Text style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>
-                  {formatMoney(totalAmount)}
-                </Text>
+            {state === "loading" && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
               </View>
+            )}
 
-              {filteredIncomes.length === 0 ? (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.emptyTitle}>Nenhuma receita</Text>
+            {state === "error" && (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorTitle}>Não foi possível carregar</Text>
 
-                  <Text style={styles.emptyText}>
-                    Não há receitas para este filtro no mês selecionado.
+                <Text style={styles.errorText}>{errorMessage}</Text>
+
+                <Pressable
+                  onPress={() => {
+                    void loadIncomes();
+                  }}
+                  style={({ pressed }) => [styles.retryButton, pressed && styles.retryPressed]}
+                >
+                  <Text style={styles.retryText}>Tentar novamente</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {state === "ready" && (
+              <>
+                <View style={styles.summary}>
+                  <Text style={styles.summaryLabel}>Receitas previstas</Text>
+
+                  <Text style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>
+                    {formatMoney(totalAmount)}
                   </Text>
                 </View>
-              ) : (
-                <View style={styles.list}>
-                  {filteredIncomes.map((income) => (
-                    <IncomeRow
-                      key={income.id}
-                      income={income}
-                      onPress={() => {
-                        router.push({
-                          pathname: "/incomes/[id]",
-                          params: {
-                            id: income.id
-                          }
-                        });
-                      }}
-                    />
-                  ))}
-                </View>
-              )}
-            </>
-          )}
-        </ScrollView>
+
+                {filteredIncomes.length === 0 ? (
+                  <View style={styles.emptyCard}>
+                    <Text style={styles.emptyTitle}>Nenhuma receita</Text>
+
+                    <Text style={styles.emptyText}>
+                      Não há receitas para este filtro no mês selecionado.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.list}>
+                    {filteredIncomes.map((income) => (
+                      <IncomeRow
+                        key={income.id}
+                        income={income}
+                        onPress={() => {
+                          router.push({
+                            pathname: "/incomes/[id]",
+                            params: {
+                              id: income.id
+                            }
+                          });
+                        }}
+                      />
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+
+          <AddIncomeButton
+            bottom={tabBarBottom + 73}
+            onPress={() => {
+              router.push({
+                pathname: "/incomes/new",
+                params: {
+                  competence
+                }
+              });
+            }}
+          />
+        </View>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -195,11 +214,15 @@ const styles = StyleSheet.create({
     flex: 1
   },
 
+  root: {
+    flex: 1
+  },
+
   content: {
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 110
+    paddingBottom: 155
   },
 
   header: {
