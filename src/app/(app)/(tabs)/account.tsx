@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { AccountMenuCard, type AccountMenuCardItem } from "@/components/account/account-menu-card";
@@ -16,6 +16,34 @@ export default function AccountScreen() {
 
   function openSecurity(): void {
     router.push("/account/security");
+  }
+
+  function openPreferences(): void {
+    router.push("/account/preferences");
+  }
+
+  function openNotifications(): void {
+    router.push("/account/notifications");
+  }
+
+  function openTerms(): void {
+    router.push("/account/terms");
+  }
+
+  function handleSignOut(): void {
+    Alert.alert("Sair da conta", "Deseja realmente encerrar sua sessão neste aparelho?", [
+      {
+        text: "Cancelar",
+        style: "cancel"
+      },
+      {
+        text: "Sair",
+        style: "destructive",
+        onPress: () => {
+          void signOut();
+        }
+      }
+    ]);
   }
 
   const settingsItems: AccountMenuCardItem[] = [
@@ -37,13 +65,15 @@ export default function AccountScreen() {
       key: "preferences",
       icon: "settings-outline",
       title: "Preferências",
-      subtitle: "Moeda, data e configurações do app"
+      subtitle: "Exibição e comportamento do app",
+      onPress: openPreferences
     },
     {
       key: "notifications",
       icon: "notifications-outline",
       title: "Notificações",
-      subtitle: "Lembretes de vencimentos e resumos"
+      subtitle: "Lembretes de vencimentos",
+      onPress: openNotifications
     }
   ];
 
@@ -51,15 +81,16 @@ export default function AccountScreen() {
     {
       key: "terms",
       icon: "document-text-outline",
-      title: "Termos de uso"
+      title: "Termos de uso",
+      subtitle: "Condições para utilização do Finance",
+      onPress: openTerms
     },
     {
       key: "logout",
       icon: "log-out-outline",
       title: "Sair",
-      onPress: () => {
-        void signOut();
-      }
+      showChevron: false,
+      onPress: handleSignOut
     }
   ];
 

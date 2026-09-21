@@ -35,7 +35,7 @@ export function AccountMenuItem({
           </Text>
 
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1} adjustsFontSizeToFit>
+            <Text style={styles.subtitle} numberOfLines={2}>
               {subtitle}
             </Text>
           ) : null}
@@ -62,7 +62,7 @@ export function AccountMenuItem({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 61
+    minHeight: 66
   },
 
   pressed: {
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    minHeight: 61,
+    minHeight: 66,
     flexDirection: "row",
     alignItems: "stretch",
     paddingLeft: 16
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingRight: 8
   },
 
@@ -112,9 +112,9 @@ const styles = StyleSheet.create({
   },
 
   subtitle: {
-    marginTop: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 17,
     color: "#526D94"
   }
 });

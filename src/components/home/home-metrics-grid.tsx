@@ -10,13 +10,15 @@ type MetricCardProps = {
   label: string;
   iconColor: string;
   iconBackground: string;
+  fullWidth?: boolean;
 };
 
 type HomeMetricsGridProps = {
   planning: MonthlyPlanning;
+  showUpcomingExpenses?: boolean;
 };
 
-export function HomeMetricsGrid({ planning }: HomeMetricsGridProps) {
+export function HomeMetricsGrid({ planning, showUpcomingExpenses = true }: HomeMetricsGridProps) {
   const installmentCount = planning.items.expenses.filter(
     (expense) => expense.installmentNumber !== null
   ).length;
@@ -44,25 +46,35 @@ export function HomeMetricsGrid({ planning }: HomeMetricsGridProps) {
       <MetricCard
         icon="calendar-outline"
         value={installmentCount}
-        label="Parcela"
+        label="Parcelas"
         iconColor={theme.colors.primary}
         iconBackground={theme.colors.primarySoft}
+        fullWidth={!showUpcomingExpenses}
       />
 
-      <MetricCard
-        icon="star-outline"
-        value={upcomingCount}
-        label="Próximos vencimentos"
-        iconColor={theme.colors.warning}
-        iconBackground={theme.colors.warningSoft}
-      />
+      {showUpcomingExpenses ? (
+        <MetricCard
+          icon="star-outline"
+          value={upcomingCount}
+          label="Próximos vencimentos"
+          iconColor={theme.colors.warning}
+          iconBackground={theme.colors.warningSoft}
+        />
+      ) : null}
     </View>
   );
 }
 
-function MetricCard({ icon, value, label, iconColor, iconBackground }: MetricCardProps) {
+function MetricCard({
+  icon,
+  value,
+  label,
+  iconColor,
+  iconBackground,
+  fullWidth = false
+}: MetricCardProps) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, fullWidth && styles.cardFullWidth]}>
       <View
         style={[
           styles.iconContainer,
@@ -128,6 +140,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: theme.colors.surface,
     ...theme.shadow.card
+  },
+
+  cardFullWidth: {
+    width: "100%"
   },
 
   iconContainer: {

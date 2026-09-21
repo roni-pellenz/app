@@ -3,6 +3,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  DEFAULT_ACCOUNT_PREFERENCES,
+  loadAccountPreferences,
+  type AccountPreferences
+} from "@/account/account-preferences.storage";
 import { useAuth } from "@/authentication/auth.context";
 import { HomeHeader } from "@/components/home/home-header";
 import { HomeMetricsGrid } from "@/components/home/home-metrics-grid";
@@ -23,6 +28,10 @@ export default function HomeScreen() {
   const [competence, setCompetence] = useState(getCurrentCompetence());
 
   const [planning, setPlanning] = useState<MonthlyPlanning | null>(null);
+
+  const [preferences, setPreferences] = useState<AccountPreferences>({
+    ...DEFAULT_ACCOUNT_PREFERENCES
+  });
 
   const [state, setState] = useState<ScreenState>("loading");
 
@@ -48,6 +57,7 @@ export default function HomeScreen() {
       }
 
       setPlanning(response);
+
       setState("ready");
     } catch (error) {
       if (requestId !== requestIdRef.current) {
@@ -70,6 +80,34 @@ export default function HomeScreen() {
     useCallback(() => {
       void loadPlanning();
     }, [loadPlanning])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      async function loadPreferences(): Promise<void> {
+        try {
+          const result = await loadAccountPreferences();
+
+          if (active) {
+            setPreferences(result);
+          }
+        } catch {
+          if (active) {
+            setPreferences({
+              ...DEFAULT_ACCOUNT_PREFERENCES
+            });
+          }
+        }
+      }
+
+      void loadPreferences();
+
+      return () => {
+        active = false;
+      };
+    }, [])
   );
 
   return (
@@ -130,7 +168,10 @@ export default function HomeScreen() {
                 />
 
                 <View style={styles.metricsContainer}>
-                  <HomeMetricsGrid planning={planning} />
+                  <HomeMetricsGrid
+                    planning={planning}
+                    showUpcomingExpenses={preferences.showUpcomingExpenses}
+                  />
                 </View>
 
                 <View style={styles.statusContainer}>

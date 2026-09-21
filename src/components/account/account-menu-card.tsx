@@ -11,6 +11,7 @@ export type AccountMenuCardItem = {
   icon: IoniconName;
   title: string;
   subtitle?: string;
+  showChevron?: boolean;
   onPress?: () => void;
 };
 
@@ -28,6 +29,7 @@ export function AccountMenuCard({ items }: AccountMenuCardProps) {
           title={item.title}
           subtitle={item.subtitle}
           onPress={item.onPress}
+          showChevron={item.showChevron}
           showDivider={index < items.length - 1}
         />
       ))}

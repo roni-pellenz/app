@@ -22,6 +22,7 @@ import type {
   UpdateProfileInput
 } from "@/authentication/auth.types";
 import { ApiError, apiRequest } from "@/lib/api";
+import { cancelExpenseNotifications } from "@/notification/notification.service";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -122,6 +123,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } catch {
       // A sessão local sempre será encerrada.
     } finally {
+      try {
+        await cancelExpenseNotifications();
+      } catch {
+        // O logout não depende da limpeza
+        // das notificações do sistema.
+      }
+
       await clearStoredSession();
 
       setSession(null);
@@ -160,11 +168,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
         throw new Error("Sessão indisponível.");
       }
 
-      await apiRequest<{ success: true }>("/users/me", {
+      await apiRequest<{
+        success: true;
+      }>("/users/me", {
         method: "DELETE",
         token: session.token,
         body: input
       });
+
+      try {
+        await cancelExpenseNotifications();
+      } catch {
+        // A exclusão da conta já ocorreu
+        // no servidor.
+      }
 
       await clearStoredSession();
 
@@ -179,7 +196,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         throw new Error("Sessão indisponível.");
       }
 
-      await apiRequest<{ success: true }>("/authentication/password", {
+      await apiRequest<{
+        success: true;
+      }>("/authentication/password", {
         method: "PATCH",
         token: session.token,
         body: input

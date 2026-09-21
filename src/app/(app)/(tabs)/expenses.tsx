@@ -27,6 +27,7 @@ import {
 import type { Expense, ExpenseFilter } from "@/expense/expense.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { getCurrentCompetence, shiftCompetence } from "@/lib/format";
+import { syncExpenseNotifications } from "@/notification/notification.service";
 import { theme } from "@/theme/theme";
 
 type ScreenState = "loading" | "ready" | "error";
@@ -91,6 +92,16 @@ export default function ExpensesScreen() {
     }, [loadExpenses])
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) {
+        return;
+      }
+
+      void syncExpenseNotifications(token).catch(() => undefined);
+    }, [token])
+  );
+
   const filteredExpenses = useMemo(() => {
     switch (filter) {
       case "recurring":
@@ -126,6 +137,8 @@ export default function ExpensesScreen() {
       setExpenses((current) =>
         current.map((item) => (item.id === updatedExpense.id ? updatedExpense : item))
       );
+
+      void syncExpenseNotifications(token).catch(() => undefined);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         await signOut();
@@ -216,6 +229,8 @@ export default function ExpensesScreen() {
       }
 
       setExpenses((current) => current.filter((item) => item.id !== expense.id));
+
+      void syncExpenseNotifications(token).catch(() => undefined);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         await signOut();
