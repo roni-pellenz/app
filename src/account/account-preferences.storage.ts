@@ -1,11 +1,15 @@
 import * as SecureStore from "expo-secure-store";
 
+export type HomeMetricsLayout = "detailed" | "compact";
+
 export type AccountPreferences = {
   showUpcomingExpenses: boolean;
+  homeMetricsLayout: HomeMetricsLayout;
 };
 
 export const DEFAULT_ACCOUNT_PREFERENCES: AccountPreferences = {
-  showUpcomingExpenses: true
+  showUpcomingExpenses: true,
+  homeMetricsLayout: "detailed"
 };
 
 const PREFERENCES_KEY = "finance.preferences.v2";
@@ -19,11 +23,14 @@ export async function loadAccountPreferences(): Promise<AccountPreferences> {
     try {
       const parsed: unknown = JSON.parse(rawPreferences);
 
-      if (isAccountPreferences(parsed)) {
-        return parsed;
+      const preferences = parseAccountPreferences(parsed);
+
+      if (preferences) {
+        return preferences;
       }
     } catch {
-      // Se o conteúdo estiver inválido, usamos os padrões abaixo.
+      // Se o conteúdo estiver inválido,
+      // usamos os valores padrão abaixo.
     }
   }
 
@@ -31,6 +38,7 @@ export async function loadAccountPreferences(): Promise<AccountPreferences> {
 
   if (legacyUpcomingExpenses !== null) {
     return {
+      ...DEFAULT_ACCOUNT_PREFERENCES,
       showUpcomingExpenses: legacyUpcomingExpenses === "true"
     };
   }
@@ -59,12 +67,34 @@ export async function saveShowUpcomingExpenses(enabled: boolean): Promise<void> 
   });
 }
 
-function isAccountPreferences(value: unknown): value is AccountPreferences {
+export async function saveHomeMetricsLayout(layout: HomeMetricsLayout): Promise<void> {
+  const currentPreferences = await loadAccountPreferences();
+
+  await saveAccountPreferences({
+    ...currentPreferences,
+    homeMetricsLayout: layout
+  });
+}
+
+function parseAccountPreferences(value: unknown): AccountPreferences | null {
   if (typeof value !== "object" || value === null) {
-    return false;
+    return null;
   }
 
   const preferences = value as Record<string, unknown>;
 
-  return typeof preferences.showUpcomingExpenses === "boolean";
+  if (typeof preferences.showUpcomingExpenses !== "boolean") {
+    return null;
+  }
+
+  const storedLayout = preferences.homeMetricsLayout;
+
+  if (storedLayout !== undefined && storedLayout !== "detailed" && storedLayout !== "compact") {
+    return null;
+  }
+
+  return {
+    showUpcomingExpenses: preferences.showUpcomingExpenses,
+    homeMetricsLayout: storedLayout === "compact" ? "compact" : "detailed"
+  };
 }

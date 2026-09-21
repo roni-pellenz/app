@@ -16,8 +16,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   DEFAULT_ACCOUNT_PREFERENCES,
   loadAccountPreferences,
+  saveHomeMetricsLayout,
   saveShowUpcomingExpenses,
-  type AccountPreferences
+  type AccountPreferences,
+  type HomeMetricsLayout
 } from "@/account/account-preferences.storage";
 import { theme } from "@/theme/theme";
 
@@ -93,6 +95,34 @@ export default function PreferencesScreen() {
     }
   }
 
+  async function handleLayoutChange(layout: HomeMetricsLayout): Promise<void> {
+    if (saving || preferences.homeMetricsLayout === layout) {
+      return;
+    }
+
+    const previousLayout = preferences.homeMetricsLayout;
+
+    setPreferences((current) => ({
+      ...current,
+      homeMetricsLayout: layout
+    }));
+
+    setSaving(true);
+
+    try {
+      await saveHomeMetricsLayout(layout);
+    } catch {
+      setPreferences((current) => ({
+        ...current,
+        homeMetricsLayout: previousLayout
+      }));
+
+      Alert.alert("Não foi possível salvar", "Não foi possível atualizar a visualização da Home.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <LinearGradient
@@ -128,40 +158,131 @@ export default function PreferencesScreen() {
 
           <Text style={styles.sectionTitle}>Home</Text>
 
-          <View style={styles.preferencesCard}>
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator color={theme.colors.primary} />
-              </View>
-            ) : (
-              <View style={styles.preferenceRow}>
-                <View style={styles.preferenceIcon}>
-                  <Ionicons name="calendar-outline" size={23} color={theme.colors.warning} />
+          {loading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator color={theme.colors.primary} />
+            </View>
+          ) : (
+            <>
+              <View style={styles.layoutCard}>
+                <View style={styles.layoutHeader}>
+                  <View style={styles.layoutHeaderIcon}>
+                    <Ionicons name="grid-outline" size={22} color={theme.colors.primary} />
+                  </View>
+
+                  <View style={styles.layoutHeaderContent}>
+                    <Text style={styles.layoutTitle}>Visualização dos indicadores</Text>
+
+                    <Text style={styles.layoutDescription}>
+                      Escolha quanto espaço os indicadores ocupam na Home.
+                    </Text>
+                  </View>
                 </View>
 
-                <View style={styles.preferenceContent}>
-                  <Text style={styles.preferenceTitle}>Próximos vencimentos</Text>
+                <View style={styles.segmentedControl}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      void handleLayoutChange("detailed");
+                    }}
+                    style={({ pressed }) => [
+                      styles.segmentedOption,
+                      preferences.homeMetricsLayout === "detailed" &&
+                        styles.segmentedOptionSelected,
+                      pressed && styles.segmentedOptionPressed
+                    ]}
+                  >
+                    <Ionicons
+                      name="grid-outline"
+                      size={18}
+                      color={
+                        preferences.homeMetricsLayout === "detailed"
+                          ? theme.colors.primary
+                          : theme.colors.textSecondary
+                      }
+                    />
 
-                  <Text style={styles.preferenceDescription}>
-                    Mostrar na Home as despesas que vencem nos próximos 7 dias.
-                  </Text>
+                    <Text
+                      style={[
+                        styles.segmentedOptionText,
+                        preferences.homeMetricsLayout === "detailed" &&
+                          styles.segmentedOptionTextSelected
+                      ]}
+                    >
+                      Detalhada
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => {
+                      void handleLayoutChange("compact");
+                    }}
+                    style={({ pressed }) => [
+                      styles.segmentedOption,
+                      preferences.homeMetricsLayout === "compact" && styles.segmentedOptionSelected,
+                      pressed && styles.segmentedOptionPressed
+                    ]}
+                  >
+                    <Ionicons
+                      name="apps-outline"
+                      size={18}
+                      color={
+                        preferences.homeMetricsLayout === "compact"
+                          ? theme.colors.primary
+                          : theme.colors.textSecondary
+                      }
+                    />
+
+                    <Text
+                      style={[
+                        styles.segmentedOptionText,
+                        preferences.homeMetricsLayout === "compact" &&
+                          styles.segmentedOptionTextSelected
+                      ]}
+                    >
+                      Compacta
+                    </Text>
+                  </Pressable>
                 </View>
 
-                <Switch
-                  value={preferences.showUpcomingExpenses}
-                  disabled={saving}
-                  onValueChange={(enabled) => {
-                    void handleUpcomingExpensesChange(enabled);
-                  }}
-                  trackColor={{
-                    false: "#CBD8E7",
-                    true: theme.colors.primary
-                  }}
-                  ios_backgroundColor="#CBD8E7"
-                />
+                <Text style={styles.layoutHint}>
+                  {preferences.homeMetricsLayout === "detailed"
+                    ? "Cards maiores e mais espaçados."
+                    : "Mais informações em menos espaço."}
+                </Text>
               </View>
-            )}
-          </View>
+
+              <View style={styles.preferencesCard}>
+                <View style={styles.preferenceRow}>
+                  <View style={styles.preferenceIcon}>
+                    <Ionicons name="calendar-outline" size={23} color={theme.colors.warning} />
+                  </View>
+
+                  <View style={styles.preferenceContent}>
+                    <Text style={styles.preferenceTitle}>Próximos vencimentos</Text>
+
+                    <Text style={styles.preferenceDescription}>
+                      Mostrar na Home as despesas que vencem nos próximos 7 dias.
+                    </Text>
+                  </View>
+
+                  <Switch
+                    value={preferences.showUpcomingExpenses}
+                    disabled={saving}
+                    onValueChange={(enabled) => {
+                      void handleUpcomingExpensesChange(enabled);
+                    }}
+                    trackColor={{
+                      false: "#CBD8E7",
+                      true: theme.colors.primary
+                    }}
+                    ios_backgroundColor="#CBD8E7"
+                  />
+                </View>
+              </View>
+            </>
+          )}
 
           <View style={styles.infoCard}>
             <View style={styles.infoIcon}>
@@ -169,10 +290,10 @@ export default function PreferencesScreen() {
             </View>
 
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Preferência deste aparelho</Text>
+              <Text style={styles.infoTitle}>Preferências deste aparelho</Text>
 
               <Text style={styles.infoText}>
-                Esta configuração fica salva localmente e não altera seus dados financeiros.
+                Estas configurações ficam salvas localmente e não alteram seus dados financeiros.
               </Text>
             </View>
           </View>
@@ -259,8 +380,10 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary
   },
 
-  preferencesCard: {
-    overflow: "hidden",
+  loadingCard: {
+    minHeight: 100,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.colors.border,
     borderRadius: 22,
@@ -268,10 +391,104 @@ const styles = StyleSheet.create({
     ...theme.shadow.card
   },
 
-  loadingContainer: {
-    minHeight: 92,
+  layoutCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    borderRadius: 22,
+    padding: 15,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadow.card
+  },
+
+  layoutHeader: {
+    flexDirection: "row",
+    alignItems: "center"
+  },
+
+  layoutHeaderIcon: {
+    width: 44,
+    height: 44,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    borderRadius: 14,
+    backgroundColor: theme.colors.primarySoft
+  },
+
+  layoutHeaderContent: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 13
+  },
+
+  layoutTitle: {
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: "700",
+    color: theme.colors.text
+  },
+
+  layoutDescription: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 17,
+    color: theme.colors.textSecondary
+  },
+
+  segmentedControl: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 16,
+    borderRadius: 15,
+    padding: 4,
+    backgroundColor: theme.colors.surfaceMuted
+  },
+
+  segmentedOption: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    borderRadius: 12
+  },
+
+  segmentedOptionSelected: {
+    backgroundColor: theme.colors.surface,
+    ...theme.shadow.card
+  },
+
+  segmentedOptionPressed: {
+    opacity: 0.7
+  },
+
+  segmentedOptionText: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "700",
+    color: theme.colors.textSecondary
+  },
+
+  segmentedOptionTextSelected: {
+    color: theme.colors.primary
+  },
+
+  layoutHint: {
+    marginTop: 10,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    color: theme.colors.textMuted
+  },
+
+  preferencesCard: {
+    overflow: "hidden",
+    marginTop: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    borderRadius: 22,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadow.card
   },
 
   preferenceRow: {

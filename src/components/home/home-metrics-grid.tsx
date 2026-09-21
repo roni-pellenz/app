@@ -1,33 +1,96 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import type { HomeMetricsLayout } from "@/account/account-preferences.storage";
 import type { MonthlyPlanning, PlanningExpense } from "@/planning/planning.types";
 import { theme } from "@/theme/theme";
 
-type MetricCardProps = {
-  icon: ComponentProps<typeof Ionicons>["name"];
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+type MetricProps = {
+  icon: IoniconName;
   value: number;
   label: string;
   iconColor: string;
   iconBackground: string;
+};
+
+type DetailedMetricCardProps = MetricProps & {
   fullWidth?: boolean;
+};
+
+type CompactMetricProps = MetricProps & {
+  showRightDivider?: boolean;
 };
 
 type HomeMetricsGridProps = {
   planning: MonthlyPlanning;
   showUpcomingExpenses?: boolean;
+  layout?: HomeMetricsLayout;
 };
 
-export function HomeMetricsGrid({ planning, showUpcomingExpenses = true }: HomeMetricsGridProps) {
+export function HomeMetricsGrid({
+  planning,
+  showUpcomingExpenses = true,
+  layout = "detailed"
+}: HomeMetricsGridProps) {
   const installmentCount = planning.items.expenses.filter(
     (expense) => expense.installmentNumber !== null
   ).length;
 
   const upcomingCount = countUpcomingExpenses(planning.items.expenses);
 
+  if (layout === "compact") {
+    return (
+      <View style={styles.compactCard}>
+        <View style={styles.compactRow}>
+          <CompactMetric
+            icon="arrow-down-outline"
+            value={planning.expenses.paidCount}
+            label="Pagas"
+            iconColor={theme.colors.success}
+            iconBackground={theme.colors.successSoft}
+            showRightDivider
+          />
+
+          <CompactMetric
+            icon="arrow-up-outline"
+            value={planning.expenses.pendingCount}
+            label="Pendentes"
+            iconColor={theme.colors.danger}
+            iconBackground={theme.colors.dangerSoft}
+          />
+        </View>
+
+        <View style={styles.compactHorizontalDivider} />
+
+        <View style={styles.compactRow}>
+          <CompactMetric
+            icon="calendar-outline"
+            value={installmentCount}
+            label="Parcelas"
+            iconColor={theme.colors.primary}
+            iconBackground={theme.colors.primarySoft}
+            showRightDivider={showUpcomingExpenses}
+          />
+
+          {showUpcomingExpenses ? (
+            <CompactMetric
+              icon="star-outline"
+              value={upcomingCount}
+              label="Próx. 7 dias"
+              iconColor={theme.colors.warning}
+              iconBackground={theme.colors.warningSoft}
+            />
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.grid}>
-      <MetricCard
+      <DetailedMetricCard
         icon="arrow-down-outline"
         value={planning.expenses.paidCount}
         label="Pagas"
@@ -35,7 +98,7 @@ export function HomeMetricsGrid({ planning, showUpcomingExpenses = true }: HomeM
         iconBackground={theme.colors.successSoft}
       />
 
-      <MetricCard
+      <DetailedMetricCard
         icon="arrow-up-outline"
         value={planning.expenses.pendingCount}
         label="Pendentes"
@@ -43,7 +106,7 @@ export function HomeMetricsGrid({ planning, showUpcomingExpenses = true }: HomeM
         iconBackground={theme.colors.dangerSoft}
       />
 
-      <MetricCard
+      <DetailedMetricCard
         icon="calendar-outline"
         value={installmentCount}
         label="Parcelas"
@@ -53,7 +116,7 @@ export function HomeMetricsGrid({ planning, showUpcomingExpenses = true }: HomeM
       />
 
       {showUpcomingExpenses ? (
-        <MetricCard
+        <DetailedMetricCard
           icon="star-outline"
           value={upcomingCount}
           label="Próximos vencimentos"
@@ -65,14 +128,14 @@ export function HomeMetricsGrid({ planning, showUpcomingExpenses = true }: HomeM
   );
 }
 
-function MetricCard({
+function DetailedMetricCard({
   icon,
   value,
   label,
   iconColor,
   iconBackground,
   fullWidth = false
-}: MetricCardProps) {
+}: DetailedMetricCardProps) {
   return (
     <View style={[styles.card, fullWidth && styles.cardFullWidth]}>
       <View
@@ -90,6 +153,38 @@ function MetricCard({
         <Text style={styles.value}>{value}</Text>
 
         <Text style={styles.label} numberOfLines={2}>
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function CompactMetric({
+  icon,
+  value,
+  label,
+  iconColor,
+  iconBackground,
+  showRightDivider = false
+}: CompactMetricProps) {
+  return (
+    <View style={[styles.compactMetric, showRightDivider && styles.compactMetricRightDivider]}>
+      <View
+        style={[
+          styles.compactIconContainer,
+          {
+            backgroundColor: iconBackground
+          }
+        ]}
+      >
+        <Ionicons name={icon} size={20} color={iconColor} />
+      </View>
+
+      <View style={styles.compactTextContainer}>
+        <Text style={styles.compactValue}>{value}</Text>
+
+        <Text style={styles.compactLabel} numberOfLines={1}>
           {label}
         </Text>
       </View>
@@ -170,6 +265,66 @@ const styles = StyleSheet.create({
   label: {
     marginTop: 3,
     fontSize: 10,
+    lineHeight: 14,
+    color: theme.colors.textSecondary
+  },
+
+  compactCard: {
+    overflow: "hidden",
+    borderRadius: 22,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadow.card
+  },
+
+  compactRow: {
+    flexDirection: "row"
+  },
+
+  compactMetric: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 13,
+    paddingVertical: 10
+  },
+
+  compactMetricRightDivider: {
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: theme.colors.border
+  },
+
+  compactHorizontalDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 13,
+    backgroundColor: theme.colors.border
+  },
+
+  compactIconContainer: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 11
+  },
+
+  compactTextContainer: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 9
+  },
+
+  compactValue: {
+    fontSize: 18,
+    lineHeight: 20,
+    fontWeight: "800",
+    color: theme.colors.text
+  },
+
+  compactLabel: {
+    marginTop: 2,
+    fontSize: 11,
     lineHeight: 14,
     color: theme.colors.textSecondary
   }

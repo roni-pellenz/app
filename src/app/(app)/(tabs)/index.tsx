@@ -171,6 +171,7 @@ export default function HomeScreen() {
                   <HomeMetricsGrid
                     planning={planning}
                     showUpcomingExpenses={preferences.showUpcomingExpenses}
+                    layout={preferences.homeMetricsLayout}
                   />
                 </View>
 
