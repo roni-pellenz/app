@@ -19,6 +19,7 @@ import type {
   DeleteAccountInput,
   LoginResponse,
   SignInInput,
+  SignUpInput,
   UpdateProfileInput
 } from "@/authentication/auth.types";
 import { ApiError, apiRequest } from "@/lib/api";
@@ -30,6 +31,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (input: SignInInput) => Promise<void>;
+  signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<AuthUser>;
   deleteAccount: (input: DeleteAccountInput) => Promise<void>;
@@ -94,7 +96,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  const signIn = useCallback(async (input: SignInInput): Promise<void> => {
+  const createSession = useCallback(async (input: SignInInput): Promise<void> => {
     const response = await apiRequest<LoginResponse>("/authentication/login", {
       method: "POST",
       body: input
@@ -109,6 +111,38 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     setSession(nextSession);
   }, []);
+
+  const signIn = useCallback(
+    async (input: SignInInput): Promise<void> => {
+      await createSession({
+        email: input.email.trim().toLowerCase(),
+        password: input.password
+      });
+    },
+    [createSession]
+  );
+
+  const signUp = useCallback(
+    async (input: SignUpInput): Promise<void> => {
+      const email = input.email.trim().toLowerCase();
+
+      await apiRequest("/users", {
+        method: "POST",
+        body: {
+          name: input.name.trim(),
+          surname: input.surname.trim(),
+          email,
+          password: input.password
+        }
+      });
+
+      await createSession({
+        email,
+        password: input.password
+      });
+    },
+    [createSession]
+  );
 
   const signOut = useCallback(async (): Promise<void> => {
     const currentToken = session?.token;
@@ -214,12 +248,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isAuthenticated: session !== null,
       isLoading,
       signIn,
+      signUp,
       signOut,
       updateProfile,
       deleteAccount,
       changePassword
     }),
-    [session, isLoading, signIn, signOut, updateProfile, deleteAccount, changePassword]
+    [session, isLoading, signIn, signUp, signOut, updateProfile, deleteAccount, changePassword]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

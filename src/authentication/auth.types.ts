@@ -20,6 +20,13 @@ export type SignInInput = {
   password: string;
 };
 
+export type SignUpInput = {
+  name: string;
+  surname: string;
+  email: string;
+  password: string;
+};
+
 export type UpdateProfileInput = {
   name: string;
   surname: string;

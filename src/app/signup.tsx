@@ -21,24 +21,48 @@ import { theme } from "@/theme/theme";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function LoginScreen() {
-  const { signIn } = useAuth();
+export default function SignUpScreen() {
+  const { signUp } = useAuth();
+
+  const [name, setName] = useState("");
+
+  const [surname, setSurname] = useState("");
 
   const [email, setEmail] = useState("");
 
   const [password, setPassword] = useState("");
 
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
 
   async function submit(): Promise<void> {
+    const normalizedName = name.trim();
+
+    const normalizedSurname = surname.trim();
+
     const normalizedEmail = email.trim();
 
-    if (!normalizedEmail || !password) {
-      setError("Informe seu e-mail e sua senha.");
+    if (
+      !normalizedName ||
+      !normalizedSurname ||
+      !normalizedEmail ||
+      !password ||
+      !confirmPassword
+    ) {
+      setError("Preencha todos os campos.");
+
+      return;
+    }
+
+    if (normalizedName.length > 120 || normalizedSurname.length > 120) {
+      setError("Nome e sobrenome devem ter no máximo 120 caracteres.");
 
       return;
     }
@@ -49,16 +73,36 @@ export default function LoginScreen() {
       return;
     }
 
+    if (password.length < 8) {
+      setError("A senha deve ter pelo menos 8 caracteres.");
+
+      return;
+    }
+
+    if (password.length > 72) {
+      setError("A senha deve ter no máximo 72 caracteres.");
+
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem.");
+
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
-      await signIn({
+      await signUp({
+        name: normalizedName,
+        surname: normalizedSurname,
         email: normalizedEmail,
         password
       });
     } catch (submitError) {
-      setError(getApiErrorMessage(submitError, "Não foi possível entrar."));
+      setError(getApiErrorMessage(submitError, "Não foi possível criar sua conta."));
     } finally {
       setLoading(false);
     }
@@ -79,22 +123,71 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            <View style={styles.brand}>
+            <Pressable
+              disabled={loading}
+              onPress={() => {
+                router.back();
+              }}
+              hitSlop={8}
+              style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+            >
+              <Ionicons name="chevron-back" size={22} color={theme.colors.text} />
+
+              <Text style={styles.backText}>Voltar</Text>
+            </Pressable>
+
+            <View style={styles.header}>
               <View style={styles.brandIcon}>
-                <Ionicons name="wallet-outline" size={30} color={theme.colors.primary} />
+                <Ionicons name="wallet-outline" size={28} color={theme.colors.primary} />
               </View>
 
-              <Text style={styles.brandName}>Finance</Text>
+              <Text style={styles.title}>Crie sua conta</Text>
 
-              <Text style={styles.brandSubtitle}>Planeje seu mês com clareza.</Text>
+              <Text style={styles.subtitle}>Comece a se organizar financeiramente</Text>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.title}>Bem-vindo</Text>
-
-              <Text style={styles.subtitle}>Entre na sua conta para continuar.</Text>
-
               <View style={styles.form}>
+                <View style={styles.nameRow}>
+                  <View style={styles.nameField}>
+                    <Text style={styles.label}>Nome</Text>
+
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        value={name}
+                        onChangeText={setName}
+                        placeholder="Nome"
+                        placeholderTextColor={theme.colors.textMuted}
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                        autoComplete="given-name"
+                        textContentType="givenName"
+                        editable={!loading}
+                        style={styles.input}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.nameField}>
+                    <Text style={styles.label}>Sobrenome</Text>
+
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        value={surname}
+                        onChangeText={setSurname}
+                        placeholder="Sobrenome"
+                        placeholderTextColor={theme.colors.textMuted}
+                        autoCapitalize="words"
+                        autoCorrect={false}
+                        autoComplete="family-name"
+                        textContentType="familyName"
+                        editable={!loading}
+                        style={styles.input}
+                      />
+                    </View>
+                  </View>
+                </View>
+
                 <View>
                   <Text style={styles.label}>E-mail</Text>
 
@@ -111,7 +204,6 @@ export default function LoginScreen() {
                       autoCorrect={false}
                       autoComplete="email"
                       textContentType="emailAddress"
-                      returnKeyType="next"
                       editable={!loading}
                       style={styles.input}
                     />
@@ -124,14 +216,31 @@ export default function LoginScreen() {
                   <PasswordInput
                     value={password}
                     onChangeText={setPassword}
-                    placeholder="Sua senha"
+                    placeholder="Mínimo de 8 caracteres"
                     visible={passwordVisible}
                     onToggleVisibility={() => {
                       setPasswordVisible((current) => !current);
                     }}
                     disabled={loading}
-                    autoComplete="current-password"
-                    textContentType="password"
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                  />
+                </View>
+
+                <View>
+                  <Text style={styles.label}>Confirmar senha</Text>
+
+                  <PasswordInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Repita sua senha"
+                    visible={confirmPasswordVisible}
+                    onToggleVisibility={() => {
+                      setConfirmPasswordVisible((current) => !current);
+                    }}
+                    disabled={loading}
+                    autoComplete="new-password"
+                    textContentType="newPassword"
                     returnKeyType="done"
                     onSubmitEditing={() => {
                       void submit();
@@ -161,22 +270,22 @@ export default function LoginScreen() {
                   {loading ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.buttonText}>Entrar</Text>
+                    <Text style={styles.buttonText}>Criar conta</Text>
                   )}
                 </Pressable>
               </View>
 
-              <View style={styles.signupContainer}>
-                <Text style={styles.signupText}>Ainda não tem uma conta?</Text>
+              <View style={styles.loginContainer}>
+                <Text style={styles.loginText}>Já possui uma conta?</Text>
 
                 <Pressable
                   disabled={loading}
                   onPress={() => {
-                    router.push("/signup");
+                    router.back();
                   }}
                   hitSlop={8}
                 >
-                  <Text style={styles.signupLink}>Criar conta</Text>
+                  <Text style={styles.loginLink}>Entrar</Text>
                 </Pressable>
               </View>
             </View>
@@ -203,38 +312,60 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
     paddingHorizontal: 20,
-    paddingVertical: 32
+    paddingTop: 16,
+    paddingBottom: 32
   },
 
-  brand: {
+  backButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 30
+    minHeight: 38,
+    marginLeft: -5
   },
 
-  brandIcon: {
-    width: 62,
-    height: 62,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: theme.colors.primarySoft
-  },
-
-  brandName: {
-    marginTop: 14,
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: "800",
-    letterSpacing: -0.8,
+  backText: {
+    marginLeft: 1,
+    fontSize: 14,
+    fontWeight: "700",
     color: theme.colors.text
   },
 
-  brandSubtitle: {
-    marginTop: 4,
+  pressed: {
+    opacity: 0.55
+  },
+
+  header: {
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 24
+  },
+
+  brandIcon: {
+    width: 58,
+    height: 58,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 19,
+    backgroundColor: theme.colors.primarySoft
+  },
+
+  title: {
+    marginTop: 14,
+    fontSize: 27,
+    lineHeight: 33,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+    color: theme.colors.text
+  },
+
+  subtitle: {
+    maxWidth: 290,
+    marginTop: 5,
     fontSize: 14,
     lineHeight: 20,
+    textAlign: "center",
     color: theme.colors.textSecondary
   },
 
@@ -248,24 +379,17 @@ const styles = StyleSheet.create({
     ...theme.shadow.card
   },
 
-  title: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-    color: theme.colors.text
-  },
-
-  subtitle: {
-    marginTop: 5,
-    fontSize: 14,
-    lineHeight: 20,
-    color: theme.colors.textSecondary
-  },
-
   form: {
-    gap: 16,
-    marginTop: 24
+    gap: 16
+  },
+
+  nameRow: {
+    flexDirection: "row",
+    gap: 10
+  },
+
+  nameField: {
+    flex: 1
   },
 
   label: {
@@ -335,7 +459,7 @@ const styles = StyleSheet.create({
     opacity: 0.6
   },
 
-  signupContainer: {
+  loginContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -344,12 +468,12 @@ const styles = StyleSheet.create({
     marginTop: 22
   },
 
-  signupText: {
+  loginText: {
     fontSize: 13,
     color: theme.colors.textSecondary
   },
 
-  signupLink: {
+  loginLink: {
     fontSize: 13,
     fontWeight: "800",
     color: theme.colors.primary
