@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRef } from "react";
 import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
-import type { Expense } from "@/expense/expense.types";
 import { getExpenseAppearance } from "@/expense/expense.appearance";
+import type { Expense } from "@/expense/expense.types";
 import { formatMoney } from "@/lib/format";
 import { theme } from "@/theme/theme";
 
@@ -19,8 +19,23 @@ type ExpenseStatus = {
   textColor: string;
 };
 
+type OpenSide = -1 | 0 | 1;
+
 const ACTION_WIDTH = 92;
+
 const SNAP_THRESHOLD = 42;
+
+const CLOSE_THRESHOLD = 18;
+
+const OPEN_VELOCITY_THRESHOLD = 0.35;
+
+const CLOSE_VELOCITY_THRESHOLD = 0.2;
+
+const FULL_SWIPE_RATIO = 0.72;
+
+const FULL_SWIPE_MIN_DISTANCE = ACTION_WIDTH + 70;
+
+const FULL_SWIPE_ANIMATION_DURATION = 110;
 
 export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: ExpenseRowProps) {
   const appearance = getExpenseAppearance(expense.name, expense.category);
@@ -29,9 +44,29 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
 
   const translateX = useRef(new Animated.Value(0)).current;
 
+  const rowWidthRef = useRef(0);
+
   const gestureStartX = useRef(0);
 
+  const gestureStartSide = useRef<OpenSide>(0);
+
   const openPosition = useRef(0);
+
+  const onTogglePaymentRef = useRef(onTogglePayment);
+
+  const onDeleteRef = useRef(onDelete);
+
+  onTogglePaymentRef.current = onTogglePayment;
+
+  onDeleteRef.current = onDelete;
+
+  function getRowWidth(): number {
+    return Math.max(rowWidthRef.current, ACTION_WIDTH * 3);
+  }
+
+  function getFullSwipeThreshold(): number {
+    return Math.max(FULL_SWIPE_MIN_DISTANCE, getRowWidth() * FULL_SWIPE_RATIO);
+  }
 
   function snapTo(position: number): void {
     openPosition.current = position;
@@ -48,6 +83,28 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
     snapTo(0);
   }
 
+  function executeFullSwipe(direction: -1 | 1): void {
+    const target = direction * getRowWidth();
+
+    openPosition.current = 0;
+
+    Animated.timing(translateX, {
+      toValue: target,
+      duration: FULL_SWIPE_ANIMATION_DURATION,
+      useNativeDriver: true
+    }).start(() => {
+      translateX.setValue(0);
+
+      if (direction === 1) {
+        onTogglePaymentRef.current();
+
+        return;
+      }
+
+      onDeleteRef.current();
+    });
+  }
+
   function handleRowPress(): void {
     if (openPosition.current !== 0) {
       closeRow();
@@ -61,13 +118,13 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
   function handlePayment(): void {
     closeRow();
 
-    onTogglePayment();
+    onTogglePaymentRef.current();
   }
 
   function handleDelete(): void {
     closeRow();
 
-    onDelete();
+    onDeleteRef.current();
   }
 
   const panResponder = useRef(
@@ -83,6 +140,14 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
       },
 
       onPanResponderGrant: () => {
+        if (openPosition.current > 0) {
+          gestureStartSide.current = 1;
+        } else if (openPosition.current < 0) {
+          gestureStartSide.current = -1;
+        } else {
+          gestureStartSide.current = 0;
+        }
+
         translateX.stopAnimation((value) => {
           gestureStartX.current = value;
         });
@@ -91,21 +156,87 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
       onPanResponderMove: (_, gesture) => {
         const proposed = gestureStartX.current + gesture.dx;
 
-        const clamped = Math.max(-ACTION_WIDTH, Math.min(ACTION_WIDTH, proposed));
+        const maxTranslation = getRowWidth();
+
+        let clamped: number;
+
+        if (gestureStartSide.current === 1) {
+          clamped = Math.max(0, Math.min(maxTranslation, proposed));
+        } else if (gestureStartSide.current === -1) {
+          clamped = Math.max(-maxTranslation, Math.min(0, proposed));
+        } else {
+          clamped = Math.max(-maxTranslation, Math.min(maxTranslation, proposed));
+        }
 
         translateX.setValue(clamped);
       },
 
       onPanResponderRelease: (_, gesture) => {
-        const current = gestureStartX.current + gesture.dx;
+        const maxTranslation = getRowWidth();
 
-        if (gesture.vx > 0.35 || current > SNAP_THRESHOLD) {
+        const fullThreshold = getFullSwipeThreshold();
+
+        let current = gestureStartX.current + gesture.dx;
+
+        if (gestureStartSide.current === 1) {
+          current = Math.max(0, Math.min(maxTranslation, current));
+
+          if (current >= fullThreshold && gesture.dx > 0) {
+            executeFullSwipe(1);
+
+            return;
+          }
+
+          if (gesture.dx <= -CLOSE_THRESHOLD || gesture.vx <= -CLOSE_VELOCITY_THRESHOLD) {
+            snapTo(0);
+
+            return;
+          }
+
           snapTo(ACTION_WIDTH);
 
           return;
         }
 
-        if (gesture.vx < -0.35 || current < -SNAP_THRESHOLD) {
+        if (gestureStartSide.current === -1) {
+          current = Math.max(-maxTranslation, Math.min(0, current));
+
+          if (current <= -fullThreshold && gesture.dx < 0) {
+            executeFullSwipe(-1);
+
+            return;
+          }
+
+          if (gesture.dx >= CLOSE_THRESHOLD || gesture.vx >= CLOSE_VELOCITY_THRESHOLD) {
+            snapTo(0);
+
+            return;
+          }
+
+          snapTo(-ACTION_WIDTH);
+
+          return;
+        }
+
+        if (current >= fullThreshold) {
+          executeFullSwipe(1);
+
+          return;
+        }
+
+        if (current <= -fullThreshold) {
+          executeFullSwipe(-1);
+
+          return;
+        }
+
+        if (gesture.vx > OPEN_VELOCITY_THRESHOLD || current > SNAP_THRESHOLD) {
+          snapTo(ACTION_WIDTH);
+
+          return;
+        }
+
+        if (gesture.vx < -OPEN_VELOCITY_THRESHOLD || current < -SNAP_THRESHOLD) {
           snapTo(-ACTION_WIDTH);
 
           return;
@@ -115,18 +246,77 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
       },
 
       onPanResponderTerminate: () => {
-        snapTo(openPosition.current);
+        if (gestureStartSide.current === 1) {
+          snapTo(ACTION_WIDTH);
+
+          return;
+        }
+
+        if (gestureStartSide.current === -1) {
+          snapTo(-ACTION_WIDTH);
+
+          return;
+        }
+
+        snapTo(0);
       },
 
       onPanResponderTerminationRequest: () => false
     })
   ).current;
 
+  const paymentBackgroundOpacity = translateX.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [0, 0, 1],
+    extrapolate: "clamp"
+  });
+
+  const deleteBackgroundOpacity = translateX.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [1, 0, 0],
+    extrapolate: "clamp"
+  });
+
   const isPaid = expense.paidDate !== null;
 
   return (
-    <View style={styles.swipeContainer}>
-      <View style={[styles.actionContainer, styles.paymentAction]}>
+    <View
+      style={styles.swipeContainer}
+      onLayout={(event) => {
+        rowWidthRef.current = event.nativeEvent.layout.width;
+      }}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.fullActionBackground,
+          styles.paymentBackground,
+          {
+            opacity: paymentBackgroundOpacity
+          }
+        ]}
+      />
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.fullActionBackground,
+          styles.deleteBackground,
+          {
+            opacity: deleteBackgroundOpacity
+          }
+        ]}
+      />
+
+      <Animated.View
+        style={[
+          styles.actionContainer,
+          styles.paymentAction,
+          {
+            opacity: paymentBackgroundOpacity
+          }
+        ]}
+      >
         <Pressable
           onPress={handlePayment}
           style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
@@ -137,9 +327,17 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
             {isPaid ? "Desmarcar" : "Pagar"}
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
 
-      <View style={[styles.actionContainer, styles.deleteAction]}>
+      <Animated.View
+        style={[
+          styles.actionContainer,
+          styles.deleteAction,
+          {
+            opacity: deleteBackgroundOpacity
+          }
+        ]}
+      >
         <Pressable
           onPress={handleDelete}
           style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
@@ -148,7 +346,7 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
 
           <Text style={styles.actionText}>Excluir</Text>
         </Pressable>
-      </View>
+      </Animated.View>
 
       <Animated.View
         {...panResponder.panHandlers}
@@ -316,21 +514,36 @@ const styles = StyleSheet.create({
     ...theme.shadow.card
   },
 
+  fullActionBackground: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
+  },
+
+  paymentBackground: {
+    backgroundColor: theme.colors.success
+  },
+
+  deleteBackground: {
+    backgroundColor: theme.colors.danger
+  },
+
   actionContainer: {
     position: "absolute",
     top: 0,
     bottom: 0,
-    width: ACTION_WIDTH
+    width: ACTION_WIDTH,
+    zIndex: 1
   },
 
   paymentAction: {
-    left: 0,
-    backgroundColor: theme.colors.success
+    left: 0
   },
 
   deleteAction: {
-    right: 0,
-    backgroundColor: theme.colors.danger
+    right: 0
   },
 
   actionButton: {
@@ -351,6 +564,7 @@ const styles = StyleSheet.create({
   },
 
   animatedRow: {
+    zIndex: 2,
     backgroundColor: theme.colors.surface
   },
 
