@@ -47,41 +47,39 @@ export function MonthlySummaryCard({
       <View style={styles.valuesRow}>
         <Pressable
           onPress={onIncomePress}
-          style={({ pressed }) => [styles.valueColumn, pressed && styles.columnPressed]}
+          style={({ pressed }) => [
+            styles.valueCard,
+            styles.incomeCard,
+            pressed && styles.valueCardPressed
+          ]}
         >
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Receitas</Text>
-
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-          </View>
+          <Text style={styles.label}>Receitas</Text>
 
           <Text
             style={[styles.value, styles.incomeValue]}
             numberOfLines={1}
             adjustsFontSizeToFit
-            minimumFontScale={0.75}
+            minimumFontScale={0.7}
           >
             {formatMoney(income)}
           </Text>
         </Pressable>
 
-        <View style={styles.columnDivider} />
-
         <Pressable
           onPress={onExpensePress}
-          style={({ pressed }) => [styles.valueColumn, pressed && styles.columnPressed]}
+          style={({ pressed }) => [
+            styles.valueCard,
+            styles.expenseCard,
+            pressed && styles.valueCardPressed
+          ]}
         >
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>Despesas</Text>
-
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-          </View>
+          <Text style={styles.label}>Despesas</Text>
 
           <Text
             style={[styles.value, styles.expenseValue]}
             numberOfLines={1}
             adjustsFontSizeToFit
-            minimumFontScale={0.75}
+            minimumFontScale={0.7}
           >
             {formatMoney(expenses)}
           </Text>
@@ -151,46 +149,44 @@ const styles = StyleSheet.create({
 
   valuesRow: {
     flexDirection: "row",
-    alignItems: "stretch"
+    gap: 10
   },
 
-  valueColumn: {
+  valueCard: {
     flex: 1,
     minWidth: 0,
-    minHeight: 62,
+    minHeight: 82,
     justifyContent: "center",
-    borderRadius: 12,
-    paddingHorizontal: 9,
-    paddingVertical: 7
+    borderRadius: 17,
+    paddingHorizontal: 14,
+    paddingVertical: 12
   },
 
-  columnPressed: {
-    backgroundColor: theme.colors.surfaceMuted
+  incomeCard: {
+    backgroundColor: "#F1FBF7"
   },
 
-  columnDivider: {
-    width: StyleSheet.hairlineWidth,
-    marginHorizontal: 5,
-    backgroundColor: theme.colors.border
+  expenseCard: {
+    backgroundColor: "#FFF3F5"
   },
 
-  labelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 5
+  valueCardPressed: {
+    opacity: 0.68
   },
 
   label: {
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
     color: theme.colors.textSecondary
   },
 
   value: {
-    fontSize: 17,
-    lineHeight: 21,
+    marginTop: 7,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: "800",
-    letterSpacing: -0.35
+    letterSpacing: -0.4
   },
 
   incomeValue: {
@@ -204,7 +200,7 @@ const styles = StyleSheet.create({
   availableCard: {
     minHeight: 86,
     justifyContent: "center",
-    marginTop: 14,
+    marginTop: 12,
     borderRadius: 18,
     paddingHorizontal: 17,
     paddingVertical: 13,
