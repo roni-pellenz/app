@@ -2,7 +2,7 @@ import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   DEFAULT_ACCOUNT_PREFERENCES,
   loadAccountPreferences,
@@ -22,8 +22,14 @@ import { theme } from "@/theme/theme";
 
 type ScreenState = "loading" | "ready" | "error";
 
+const HOME_CARD_GAP = 16;
+
+const TAB_BAR_HEIGHT = 62;
+
 export default function HomeScreen() {
   const { user, token, signOut } = useAuth();
+
+  const insets = useSafeAreaInsets();
 
   const [competence, setCompetence] = useState(getCurrentCompetence());
 
@@ -110,6 +116,10 @@ export default function HomeScreen() {
     }, [])
   );
 
+  const tabBarBottom = Math.max(insets.bottom - 14, 14);
+
+  const contentBottomPadding = tabBarBottom + TAB_BAR_HEIGHT + HOME_CARD_GAP;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <LinearGradient
@@ -117,7 +127,15 @@ export default function HomeScreen() {
         style={styles.gradient}
       >
         <View style={styles.root}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.content,
+              {
+                paddingBottom: contentBottomPadding
+              }
+            ]}
+          >
             <HomeHeader name={user?.name ?? ""} />
 
             <View style={styles.monthContainer}>
@@ -156,7 +174,7 @@ export default function HomeScreen() {
             )}
 
             {state === "ready" && planning && (
-              <>
+              <View style={styles.homeStack}>
                 <MonthlySummaryCard
                   planning={planning}
                   onIncomePress={() => {
@@ -167,18 +185,14 @@ export default function HomeScreen() {
                   }}
                 />
 
-                <View style={styles.metricsContainer}>
-                  <HomeMetricsGrid
-                    planning={planning}
-                    showUpcomingExpenses={preferences.showUpcomingExpenses}
-                    layout={preferences.homeMetricsLayout}
-                  />
-                </View>
+                <HomeMetricsGrid
+                  planning={planning}
+                  showUpcomingExpenses={preferences.showUpcomingExpenses}
+                  layout={preferences.homeMetricsLayout}
+                />
 
-                <View style={styles.statusContainer}>
-                  <PlanningStatusCard />
-                </View>
-              </>
+                <PlanningStatusCard />
+              </View>
             )}
           </ScrollView>
         </View>
@@ -204,8 +218,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 112
+    paddingTop: 28
   },
 
   monthContainer: {
@@ -213,12 +226,8 @@ const styles = StyleSheet.create({
     marginBottom: 19
   },
 
-  metricsContainer: {
-    marginTop: 16
-  },
-
-  statusContainer: {
-    marginTop: 17
+  homeStack: {
+    gap: HOME_CARD_GAP
   },
 
   loadingContainer: {
