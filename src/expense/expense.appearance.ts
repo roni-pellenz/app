@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import type { ExpenseCategory } from "@/expense/expense.types";
-import { theme } from "@/theme/theme";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -15,6 +14,11 @@ export type ExpenseCategoryOption = ExpenseAppearance & {
   value: ExpenseCategory;
   label: string;
 };
+
+const DEFAULT_PRIMARY = "#0784F9";
+const DEFAULT_PRIMARY_SOFT = "#E7F2FF";
+const DEFAULT_SUCCESS = "#00B978";
+const DEFAULT_SUCCESS_SOFT = "#E4F9F1";
 
 export const EXPENSE_CATEGORY_OPTIONS: readonly ExpenseCategoryOption[] = [
   {
@@ -98,15 +102,15 @@ export const EXPENSE_CATEGORY_OPTIONS: readonly ExpenseCategoryOption[] = [
     value: "FINANCIAL",
     label: "Financeiro",
     icon: "wallet-outline",
-    color: theme.colors.success,
-    backgroundColor: theme.colors.successSoft
+    color: DEFAULT_SUCCESS,
+    backgroundColor: DEFAULT_SUCCESS_SOFT
   },
   {
     value: "OTHER",
     label: "Outros",
     icon: "receipt-outline",
-    color: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft
+    color: DEFAULT_PRIMARY,
+    backgroundColor: DEFAULT_PRIMARY_SOFT
   }
 ];
 
@@ -208,22 +212,22 @@ export function getExpenseAppearance(
   if (normalized.includes("agua")) {
     return {
       icon: "water",
-      color: theme.colors.primary,
-      backgroundColor: theme.colors.primarySoft
+      color: DEFAULT_PRIMARY,
+      backgroundColor: DEFAULT_PRIMARY_SOFT
     };
   }
 
   if (normalized.includes("telefone") || normalized.includes("celular")) {
     return {
       icon: "phone-portrait-outline",
-      color: theme.colors.primary,
-      backgroundColor: theme.colors.primarySoft
+      color: DEFAULT_PRIMARY,
+      backgroundColor: DEFAULT_PRIMARY_SOFT
     };
   }
 
   return {
     icon: "receipt-outline",
-    color: theme.colors.primary,
-    backgroundColor: theme.colors.primarySoft
+    color: DEFAULT_PRIMARY,
+    backgroundColor: DEFAULT_PRIMARY_SOFT
   };
 }

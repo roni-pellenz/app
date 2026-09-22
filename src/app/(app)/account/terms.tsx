@@ -1,11 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export default function TermsScreen() {
+  const { theme } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <LinearGradient
@@ -137,6 +143,10 @@ type TermsSectionProps = {
 };
 
 function TermsSection({ number, title, children }: TermsSectionProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -153,169 +163,179 @@ function TermsSection({ number, title, children }: TermsSectionProps) {
 }
 
 function Divider() {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return <View style={styles.divider} />;
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 38
-  },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 38
+    },
 
-  navigation: {
-    height: 48,
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    navigation: {
+      height: 48,
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  backText: {
-    marginLeft: -3,
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    backText: {
+      marginLeft: -3,
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  header: {
-    alignItems: "center",
-    marginTop: 22
-  },
+    header: {
+      alignItems: "center",
+      marginTop: 22
+    },
 
-  heroIcon: {
-    width: 78,
-    height: 78,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 23,
-    backgroundColor: theme.colors.primarySoft
-  },
+    heroIcon: {
+      width: 78,
+      height: 78,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 23,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  title: {
-    marginTop: 14,
-    fontSize: 27,
-    lineHeight: 33,
-    fontWeight: "800",
-    letterSpacing: -0.8,
-    color: theme.colors.text
-  },
+    title: {
+      marginTop: 14,
+      fontSize: 27,
+      lineHeight: 33,
+      fontWeight: "800",
+      letterSpacing: -0.8,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 5,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    subtitle: {
+      marginTop: 5,
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  versionBadge: {
-    marginTop: 11,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: theme.colors.surface
-  },
+    versionBadge: {
+      marginTop: 11,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: theme.colors.surface
+    },
 
-  versionText: {
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: "600",
-    color: theme.colors.textMuted
-  },
+    versionText: {
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: "600",
+      color: theme.colors.textMuted
+    },
 
-  introCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginTop: 25,
-    borderRadius: 18,
-    padding: 15,
-    backgroundColor: theme.colors.primarySoft
-  },
+    introCard: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      marginTop: 25,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 18,
+      padding: 15,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  introText: {
-    flex: 1,
-    marginLeft: 11,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#49678F"
-  },
+    introText: {
+      flex: 1,
+      marginLeft: 11,
+      fontSize: 13,
+      lineHeight: 19,
+      color: theme.colors.textSecondary
+    },
 
-  termsCard: {
-    overflow: "hidden",
-    marginTop: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    termsCard: {
+      overflow: "hidden",
+      marginTop: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  section: {
-    paddingHorizontal: 17,
-    paddingVertical: 18
-  },
+    section: {
+      paddingHorizontal: 17,
+      paddingVertical: 18
+    },
 
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  sectionNumber: {
-    width: 30,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    backgroundColor: theme.colors.primarySoft
-  },
+    sectionNumber: {
+      width: 30,
+      height: 30,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 10,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  sectionNumberText: {
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: "800",
-    color: theme.colors.primary
-  },
+    sectionNumberText: {
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: "800",
+      color: theme.colors.primary
+    },
 
-  sectionTitle: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    sectionTitle: {
+      flex: 1,
+      marginLeft: 10,
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  sectionText: {
-    marginTop: 10,
-    fontSize: 13,
-    lineHeight: 20,
-    color: theme.colors.textSecondary
-  },
+    sectionText: {
+      marginTop: 10,
+      fontSize: 13,
+      lineHeight: 20,
+      color: theme.colors.textSecondary
+    },
 
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 17,
-    backgroundColor: theme.colors.border
-  },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      marginLeft: 17,
+      backgroundColor: theme.colors.border
+    },
 
-  footer: {
-    marginTop: 20,
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: "center",
-    color: theme.colors.textMuted
-  }
-});
+    footer: {
+      marginTop: 20,
+      fontSize: 11,
+      lineHeight: 16,
+      textAlign: "center",
+      color: theme.colors.textMuted
+    }
+  });
+}

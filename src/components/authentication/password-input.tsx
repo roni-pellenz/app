@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   Pressable,
   ScrollView,
@@ -8,7 +8,8 @@ import {
   type TextInputProps,
   View
 } from "react-native";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type PasswordInputProps = {
   value: string;
@@ -35,6 +36,10 @@ export function PasswordInput({
   returnKeyType,
   onSubmitEditing
 }: PasswordInputProps) {
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const maskScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -71,12 +76,13 @@ export function PasswordInput({
           returnKeyType={returnKeyType}
           editable={!disabled}
           caretHidden={!visible}
+          keyboardAppearance={resolvedThemeMode}
           selectionColor={visible ? theme.colors.primary : "transparent"}
           onSubmitEditing={onSubmitEditing}
           style={[styles.input, !visible && value.length > 0 && styles.maskedInput]}
         />
 
-        {!visible && value.length > 0 && (
+        {!visible && value.length > 0 ? (
           <View pointerEvents="none" style={styles.maskOverlay}>
             <ScrollView
               ref={maskScrollRef}
@@ -93,7 +99,7 @@ export function PasswordInput({
               ))}
             </ScrollView>
           </View>
-        )}
+        ) : null}
       </View>
 
       <Pressable
@@ -112,70 +118,72 @@ export function PasswordInput({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    height: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.medium,
-    paddingLeft: 14,
-    paddingRight: 8,
-    backgroundColor: theme.colors.surfaceMuted
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      height: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radius.medium,
+      paddingLeft: 14,
+      paddingRight: 8,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  inputWrapper: {
-    position: "relative",
-    flex: 1,
-    height: "100%",
-    justifyContent: "center",
-    overflow: "hidden"
-  },
+    inputWrapper: {
+      position: "relative",
+      flex: 1,
+      height: "100%",
+      justifyContent: "center",
+      overflow: "hidden"
+    },
 
-  input: {
-    width: "100%",
-    height: "100%",
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    fontSize: 15,
-    color: theme.colors.text
-  },
+    input: {
+      width: "100%",
+      height: "100%",
+      paddingVertical: 0,
+      paddingHorizontal: 0,
+      fontSize: 15,
+      color: theme.colors.text
+    },
 
-  maskedInput: {
-    color: "transparent"
-  },
+    maskedInput: {
+      color: "transparent"
+    },
 
-  maskOverlay: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    justifyContent: "center",
-    overflow: "hidden"
-  },
+    maskOverlay: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      justifyContent: "center",
+      overflow: "hidden"
+    },
 
-  maskScroll: {
-    flexGrow: 0
-  },
+    maskScroll: {
+      flexGrow: 0
+    },
 
-  maskContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingRight: 3
-  },
+    maskContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      paddingRight: 3
+    },
 
-  eyeButton: {
-    width: 30,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    eyeButton: {
+      width: 30,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center"
+    },
 
-  pressed: {
-    opacity: 0.55
-  }
-});
+    pressed: {
+      opacity: 0.55
+    }
+  });
+}

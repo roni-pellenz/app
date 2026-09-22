@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,12 +17,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { PasswordInput } from "@/components/authentication/password-input";
 import { getApiErrorMessage } from "@/lib/api";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [email, setEmail] = useState("");
 
@@ -50,6 +55,7 @@ export default function LoginScreen() {
     }
 
     setError(null);
+
     setLoading(true);
 
     try {
@@ -107,6 +113,8 @@ export default function LoginScreen() {
                       placeholder="seu@email.com"
                       placeholderTextColor={theme.colors.textMuted}
                       keyboardType="email-address"
+                      keyboardAppearance={resolvedThemeMode}
+                      selectionColor={theme.colors.primary}
                       autoCapitalize="none"
                       autoCorrect={false}
                       autoComplete="email"
@@ -139,13 +147,13 @@ export default function LoginScreen() {
                   />
                 </View>
 
-                {error && (
+                {error ? (
                   <View style={styles.errorContainer}>
                     <Ionicons name="alert-circle-outline" size={18} color={theme.colors.danger} />
 
                     <Text style={styles.errorText}>{error}</Text>
                   </View>
-                )}
+                ) : null}
 
                 <Pressable
                   disabled={loading}
@@ -159,7 +167,7 @@ export default function LoginScreen() {
                   ]}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#FFFFFF" />
+                    <ActivityIndicator color={theme.colors.onPrimary} />
                   ) : (
                     <Text style={styles.buttonText}>Entrar</Text>
                   )}
@@ -187,171 +195,175 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1
+    },
 
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 32
-  },
+    scrollContent: {
+      flexGrow: 1,
+      justifyContent: "center",
+      paddingHorizontal: 20,
+      paddingVertical: 32
+    },
 
-  brand: {
-    alignItems: "center",
-    marginBottom: 30
-  },
+    brand: {
+      alignItems: "center",
+      marginBottom: 30
+    },
 
-  brandIcon: {
-    width: 62,
-    height: 62,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: theme.colors.primarySoft
-  },
+    brandIcon: {
+      width: 62,
+      height: 62,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 20,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  brandName: {
-    marginTop: 14,
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: "800",
-    letterSpacing: -0.8,
-    color: theme.colors.text
-  },
+    brandName: {
+      marginTop: 14,
+      fontSize: 30,
+      lineHeight: 36,
+      fontWeight: "800",
+      letterSpacing: -0.8,
+      color: theme.colors.text
+    },
 
-  brandSubtitle: {
-    marginTop: 4,
-    fontSize: 14,
-    lineHeight: 20,
-    color: theme.colors.textSecondary
-  },
+    brandSubtitle: {
+      marginTop: 4,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.textSecondary
+    },
 
-  card: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 26,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    card: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 26,
+      paddingHorizontal: 20,
+      paddingVertical: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  title: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-    color: theme.colors.text
-  },
+    title: {
+      fontSize: 24,
+      lineHeight: 30,
+      fontWeight: "800",
+      letterSpacing: -0.5,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 5,
-    fontSize: 14,
-    lineHeight: 20,
-    color: theme.colors.textSecondary
-  },
+    subtitle: {
+      marginTop: 5,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.textSecondary
+    },
 
-  form: {
-    gap: 16,
-    marginTop: 24
-  },
+    form: {
+      gap: 16,
+      marginTop: 24
+    },
 
-  label: {
-    marginBottom: 7,
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    label: {
+      marginBottom: 7,
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  inputContainer: {
-    height: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.medium,
-    paddingHorizontal: 14,
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    inputContainer: {
+      height: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radius.medium,
+      paddingHorizontal: 14,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  input: {
-    flex: 1,
-    height: "100%",
-    paddingVertical: 0,
-    fontSize: 15,
-    color: theme.colors.text
-  },
+    input: {
+      flex: 1,
+      height: "100%",
+      paddingVertical: 0,
+      fontSize: 15,
+      color: theme.colors.text
+    },
 
-  errorContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 7,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: theme.colors.dangerSoft
-  },
+    errorContainer: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 7,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.danger,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: theme.colors.dangerSoft
+    },
 
-  errorText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    color: theme.colors.danger
-  },
+    errorText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.colors.danger
+    },
 
-  button: {
-    height: 54,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.medium,
-    backgroundColor: theme.colors.primary
-  },
+    button: {
+      height: 54,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: theme.radius.medium,
+      backgroundColor: theme.colors.primary
+    },
 
-  buttonPressed: {
-    opacity: 0.82
-  },
+    buttonPressed: {
+      opacity: 0.82
+    },
 
-  buttonText: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#FFFFFF"
-  },
+    buttonText: {
+      fontSize: 15,
+      fontWeight: "800",
+      color: theme.colors.onPrimary
+    },
 
-  disabled: {
-    opacity: 0.6
-  },
+    disabled: {
+      opacity: 0.6
+    },
 
-  signupContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 5,
-    marginTop: 22
-  },
+    signupContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 5,
+      marginTop: 22
+    },
 
-  signupText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary
-  },
+    signupText: {
+      fontSize: 13,
+      color: theme.colors.textSecondary
+    },
 
-  signupLink: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: theme.colors.primary
-  }
-});
+    signupLink: {
+      fontSize: 13,
+      fontWeight: "800",
+      color: theme.colors.primary
+    }
+  });
+}

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -32,10 +32,15 @@ import {
   syncExpenseNotifications,
   type NotificationPermissionState
 } from "@/notification/notification.service";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export default function NotificationsScreen() {
   const { token } = useAuth();
+
+  const { theme } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [preferences, setPreferences] = useState<AccountNotificationPreferences>({
     ...DEFAULT_ACCOUNT_NOTIFICATION_PREFERENCES
@@ -276,10 +281,10 @@ export default function NotificationsScreen() {
                       void handleReminderToggle(enabled);
                     }}
                     trackColor={{
-                      false: "#CBD8E7",
+                      false: theme.colors.progressTrack,
                       true: theme.colors.primary
                     }}
-                    ios_backgroundColor="#CBD8E7"
+                    ios_backgroundColor={theme.colors.progressTrack}
                   />
                 </View>
               </View>
@@ -327,7 +332,9 @@ export default function NotificationsScreen() {
 
                   <Text style={styles.statusText}>
                     {remindersAvailable
-                      ? `${scheduledCount} lembrete${scheduledCount === 1 ? "" : "s"} agendado${scheduledCount === 1 ? "" : "s"}.`
+                      ? `${scheduledCount} lembrete${scheduledCount === 1 ? "" : "s"} agendado${
+                          scheduledCount === 1 ? "" : "s"
+                        }.`
                       : permissionDenied
                         ? "Ative as notificações nos ajustes do sistema."
                         : "Ative os lembretes acima para começar."}
@@ -399,280 +406,284 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 40
-  },
+    content: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 40
+    },
 
-  navigation: {
-    height: 48,
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    navigation: {
+      height: 48,
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  backText: {
-    marginLeft: -3,
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    backText: {
+      marginLeft: -3,
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  header: {
-    alignItems: "center",
-    marginTop: 22
-  },
+    header: {
+      alignItems: "center",
+      marginTop: 22
+    },
 
-  heroIcon: {
-    width: 78,
-    height: 78,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 23,
-    backgroundColor: theme.colors.primarySoft
-  },
+    heroIcon: {
+      width: 78,
+      height: 78,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 23,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  title: {
-    marginTop: 14,
-    fontSize: 27,
-    lineHeight: 33,
-    fontWeight: "800",
-    letterSpacing: -0.8,
-    color: theme.colors.text
-  },
+    title: {
+      marginTop: 14,
+      fontSize: 27,
+      lineHeight: 33,
+      fontWeight: "800",
+      letterSpacing: -0.8,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    maxWidth: 310,
-    marginTop: 5,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    subtitle: {
+      maxWidth: 310,
+      marginTop: 5,
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  loadingContainer: {
-    minHeight: 280,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    loadingContainer: {
+      minHeight: 280,
+      alignItems: "center",
+      justifyContent: "center"
+    },
 
-  sectionTitle: {
-    marginTop: 28,
-    marginBottom: 8,
-    marginLeft: 4,
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: "700",
-    color: theme.colors.textSecondary
-  },
+    sectionTitle: {
+      marginTop: 28,
+      marginBottom: 8,
+      marginLeft: 4,
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: "700",
+      color: theme.colors.textSecondary
+    },
 
-  settingsCard: {
-    overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    settingsCard: {
+      overflow: "hidden",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  settingRow: {
-    minHeight: 96,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 14
-  },
+    settingRow: {
+      minHeight: 96,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 15,
+      paddingVertical: 14
+    },
 
-  settingIcon: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14,
-    backgroundColor: theme.colors.primarySoft
-  },
+    settingIcon: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 14,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  settingContent: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 13,
-    marginRight: 10
-  },
+    settingContent: {
+      flex: 1,
+      minWidth: 0,
+      marginLeft: 13,
+      marginRight: 10
+    },
 
-  settingTitle: {
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    settingTitle: {
+      fontSize: 15,
+      lineHeight: 19,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  settingDescription: {
-    marginTop: 3,
-    fontSize: 12,
-    lineHeight: 17,
-    color: theme.colors.textSecondary
-  },
+    settingDescription: {
+      marginTop: 3,
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.colors.textSecondary
+    },
 
-  statusCard: {
-    minHeight: 84,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    padding: 15,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    statusCard: {
+      minHeight: 84,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      padding: 15,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  statusIcon: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14
-  },
+    statusIcon: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 14
+    },
 
-  statusIconSuccess: {
-    backgroundColor: theme.colors.successSoft
-  },
+    statusIconSuccess: {
+      backgroundColor: theme.colors.successSoft
+    },
 
-  statusIconDanger: {
-    backgroundColor: theme.colors.dangerSoft
-  },
+    statusIconDanger: {
+      backgroundColor: theme.colors.dangerSoft
+    },
 
-  statusIconNeutral: {
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    statusIconNeutral: {
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  statusContent: {
-    flex: 1,
-    marginLeft: 13
-  },
+    statusContent: {
+      flex: 1,
+      marginLeft: 13
+    },
 
-  statusTitle: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    statusTitle: {
+      fontSize: 14,
+      lineHeight: 18,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  statusText: {
-    marginTop: 3,
-    fontSize: 12,
-    lineHeight: 17,
-    color: theme.colors.textSecondary
-  },
+    statusText: {
+      marginTop: 3,
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.colors.textSecondary
+    },
 
-  settingsButton: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderRadius: 15,
-    backgroundColor: theme.colors.primarySoft
-  },
+    settingsButton: {
+      minHeight: 48,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      borderRadius: 15,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  settingsButtonPressed: {
-    opacity: 0.7
-  },
+    settingsButtonPressed: {
+      opacity: 0.7
+    },
 
-  settingsButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.primary
-  },
+    settingsButtonText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.primary
+    },
 
-  infoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 14,
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: theme.colors.warningSoft
-  },
+    infoCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 18,
+      padding: 14,
+      backgroundColor: theme.colors.warningSoft
+    },
 
-  infoIcon: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.68)"
-  },
+    infoIcon: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12,
+      backgroundColor: theme.colors.iconSurface
+    },
 
-  infoContent: {
-    flex: 1,
-    marginLeft: 12
-  },
+    infoContent: {
+      flex: 1,
+      marginLeft: 12
+    },
 
-  infoTitle: {
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    infoTitle: {
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  infoText: {
-    marginTop: 2,
-    fontSize: 12,
-    lineHeight: 17,
-    color: theme.colors.textSecondary
-  },
+    infoText: {
+      marginTop: 2,
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.colors.textSecondary
+    },
 
-  testButton: {
-    height: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface
-  },
+    testButton: {
+      height: 52,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      borderRadius: 16,
+      backgroundColor: theme.colors.surface
+    },
 
-  testButtonDisabled: {
-    opacity: 0.4
-  },
+    testButtonDisabled: {
+      opacity: 0.4
+    },
 
-  testButtonPressed: {
-    backgroundColor: theme.colors.primarySoft
-  },
+    testButtonPressed: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  testButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.primary
-  },
+    testButtonText: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.colors.primary
+    },
 
-  footerText: {
-    marginTop: 14,
-    paddingHorizontal: 10,
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: "center",
-    color: theme.colors.textMuted
-  }
-});
+    footerText: {
+      marginTop: 14,
+      paddingHorizontal: 10,
+      fontSize: 11,
+      lineHeight: 16,
+      textAlign: "center",
+      color: theme.colors.textMuted
+    }
+  });
+}
