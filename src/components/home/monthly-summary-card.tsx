@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatMoney } from "@/lib/format";
 import type { MonthlyPlanning } from "@/planning/planning.types";
 import type { AppTheme } from "@/theme/theme";
@@ -44,6 +44,13 @@ export function MonthlySummaryCard({
       : available > 0
         ? styles.availableValuePositive
         : styles.availableValueNeutral;
+
+  function showPlanningInfo(): void {
+    Alert.alert(
+      "Receitas e despesas planejadas",
+      "O resumo considera os lançamentos da competência selecionada, independentemente da data em que a receita foi recebida ou a despesa foi paga.\n\nO valor disponível é a diferença entre as receitas e as despesas planejadas para o mês."
+    );
+  }
 
   return (
     <View style={styles.card}>
@@ -129,7 +136,15 @@ export function MonthlySummaryCard({
       <View style={styles.footer}>
         <Text style={styles.footerText}>{commitmentText}</Text>
 
-        <Ionicons name="information-circle-outline" size={17} color={theme.colors.textMuted} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Explicar receitas e despesas planejadas"
+          hitSlop={10}
+          onPress={showPlanningInfo}
+          style={({ pressed }) => [styles.infoButton, pressed && styles.infoButtonPressed]}
+        >
+          <Ionicons name="information-circle-outline" size={18} color={theme.colors.textMuted} />
+        </Pressable>
       </View>
     </View>
   );
@@ -254,16 +269,29 @@ function createStyles(theme: AppTheme) {
     },
 
     footer: {
+      minHeight: 28,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      marginTop: 9
+      marginTop: 4
     },
 
     footerText: {
       fontSize: 11,
       fontWeight: "600",
       color: theme.colors.textSecondary
+    },
+
+    infoButton: {
+      width: 28,
+      height: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 14
+    },
+
+    infoButtonPressed: {
+      backgroundColor: theme.colors.surfaceMuted
     }
   });
 }

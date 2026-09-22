@@ -14,8 +14,11 @@ type MonthSelectorProps = {
 type TransitionDirection = "previous" | "next";
 
 const MIN_SWIPE_THRESHOLD = 36;
+
 const MAX_SWIPE_THRESHOLD = 58;
+
 const VELOCITY_THRESHOLD = 0.45;
+
 const TRANSITION_DURATION = 190;
 
 export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorProps) {
@@ -109,7 +112,7 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
 
     isAnimatingRef.current = true;
 
-    const targetPosition = direction === "next" ? viewportWidth : -viewportWidth;
+    const targetPosition = direction === "next" ? -viewportWidth : viewportWidth;
 
     Animated.timing(translateX, {
       toValue: targetPosition,
@@ -168,18 +171,18 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
           ? Math.min(MAX_SWIPE_THRESHOLD, Math.max(MIN_SWIPE_THRESHOLD, viewportWidth * 0.18))
           : MIN_SWIPE_THRESHOLD;
 
-      const shouldGoNext = gesture.dx >= threshold || gesture.vx >= VELOCITY_THRESHOLD;
+      const shouldGoPrevious = gesture.dx >= threshold || gesture.vx >= VELOCITY_THRESHOLD;
 
-      const shouldGoPrevious = gesture.dx <= -threshold || gesture.vx <= -VELOCITY_THRESHOLD;
+      const shouldGoNext = gesture.dx <= -threshold || gesture.vx <= -VELOCITY_THRESHOLD;
 
-      if (shouldGoNext) {
-        completeTransition("next");
+      if (shouldGoPrevious) {
+        completeTransition("previous");
 
         return;
       }
 
-      if (shouldGoPrevious) {
-        completeTransition("previous");
+      if (shouldGoNext) {
+        completeTransition("next");
 
         return;
       }
@@ -245,7 +248,7 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
               ]}
             >
               <Text style={styles.label} numberOfLines={1}>
-                {formatCompetence(nextCompetence)}
+                {formatCompetence(previousCompetence)}
               </Text>
             </View>
 
@@ -271,7 +274,7 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
               ]}
             >
               <Text style={styles.label} numberOfLines={1}>
-                {formatCompetence(previousCompetence)}
+                {formatCompetence(nextCompetence)}
               </Text>
             </View>
           </Animated.View>

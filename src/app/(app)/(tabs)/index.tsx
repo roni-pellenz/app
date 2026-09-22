@@ -58,6 +58,7 @@ export default function HomeScreen() {
     const requestId = ++requestIdRef.current;
 
     setState("loading");
+
     setErrorMessage(null);
 
     try {
@@ -141,7 +142,7 @@ export default function HomeScreen() {
               }
             ]}
           >
-            <HomeHeader name={user?.name ?? ""} />
+            <HomeHeader name={user?.name ?? ""} userId={user?.id ?? ""} />
 
             <View style={styles.monthContainer}>
               <MonthSelector
@@ -155,13 +156,13 @@ export default function HomeScreen() {
               />
             </View>
 
-            {state === "loading" && (
+            {state === "loading" ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
               </View>
-            )}
+            ) : null}
 
-            {state === "error" && (
+            {state === "error" ? (
               <View style={styles.errorCard}>
                 <Text style={styles.errorTitle}>Não foi possível carregar</Text>
 
@@ -176,9 +177,9 @@ export default function HomeScreen() {
                   <Text style={styles.retryText}>Tentar novamente</Text>
                 </Pressable>
               </View>
-            )}
+            ) : null}
 
-            {state === "ready" && planning && (
+            {state === "ready" && planning ? (
               <View style={styles.homeStack}>
                 <MonthlySummaryCard
                   planning={planning}
@@ -198,7 +199,7 @@ export default function HomeScreen() {
 
                 <PlanningStatusCard planning={planning} />
               </View>
-            )}
+            ) : null}
           </ScrollView>
         </View>
       </LinearGradient>

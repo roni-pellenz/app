@@ -3,22 +3,27 @@ import { router, Stack } from "expo-router";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import { useAuth } from "@/authentication/auth.context";
+import {
+  recordExpenseNotificationInInbox,
+  syncNotificationInboxFromPresented
+} from "@/notification/notification-inbox.service";
 import { syncExpenseNotifications } from "@/notification/notification.service";
 
 export default function AppLayout() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   useEffect(() => {
-    if (!token) {
+    if (!token || !user?.id) {
       return;
     }
 
-    function synchronize(): void {
-      if (!token) {
-        return;
-      }
+    const currentToken = token;
+    const userId = user.id;
 
-      void syncExpenseNotifications(token).catch(() => undefined);
+    function synchronize(): void {
+      void syncNotificationInboxFromPresented(userId).catch(() => undefined);
+
+      void syncExpenseNotifications(currentToken).catch(() => undefined);
     }
 
     synchronize();
@@ -32,9 +37,15 @@ export default function AppLayout() {
     return () => {
       subscription.remove();
     };
-  }, [token]);
+  }, [token, user?.id]);
 
   useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    const userId = user.id;
+
     let active = true;
 
     function redirectFromNotification(notification: Notifications.Notification): void {
@@ -52,28 +63,51 @@ export default function AppLayout() {
       });
     }
 
+    async function handleNotificationResponse(
+      notification: Notifications.Notification
+    ): Promise<void> {
+      try {
+        await recordExpenseNotificationInInbox(userId, notification, true);
+      } catch {
+        // A navegação deve continuar
+        // mesmo se o histórico local falhar.
+      }
+
+      if (active) {
+        redirectFromNotification(notification);
+      }
+    }
+
     void Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!active || !response?.notification) {
         return;
       }
 
-      redirectFromNotification(response.notification);
-
-      void Notifications.clearLastNotificationResponseAsync();
+      void handleNotificationResponse(response.notification).finally(() => {
+        void Notifications.clearLastNotificationResponseAsync();
+      });
     });
 
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      redirectFromNotification(response.notification);
-
-      void Notifications.clearLastNotificationResponseAsync();
+    const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+      void recordExpenseNotificationInInbox(userId, notification).catch(() => undefined);
     });
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        void handleNotificationResponse(response.notification).finally(() => {
+          void Notifications.clearLastNotificationResponseAsync();
+        });
+      }
+    );
 
     return () => {
       active = false;
 
-      subscription.remove();
+      receivedSubscription.remove();
+
+      responseSubscription.remove();
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <Stack
