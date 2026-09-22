@@ -4,7 +4,8 @@ import { router } from "expo-router";
 import type { ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -53,6 +54,10 @@ const tabs: Array<{
 ];
 
 export function AppTabBar({ activeRouteName }: AppTabBarProps) {
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const insets = useSafeAreaInsets();
 
   function navigate(definition: TabDefinition, exactSelected: boolean): void {
@@ -73,7 +78,11 @@ export function AppTabBar({ activeRouteName }: AppTabBarProps) {
         }
       ]}
     >
-      <BlurView intensity={95} tint="light" style={styles.blur}>
+      <BlurView
+        intensity={resolvedThemeMode === "dark" ? 75 : 95}
+        tint={resolvedThemeMode === "dark" ? "dark" : "light"}
+        style={styles.blur}
+      >
         <View style={styles.bar}>
           {tabs.map(({ routeName, definition }) => {
             const exactSelected = activeRouteName === routeName;
@@ -118,64 +127,66 @@ export function AppTabBar({ activeRouteName }: AppTabBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: {
-    position: "absolute",
-    left: 22,
-    right: 22
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    wrapper: {
+      position: "absolute",
+      left: 22,
+      right: 22
+    },
 
-  blur: {
-    height: 62,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#D3D9E2",
-    borderRadius: 36,
-    backgroundColor: "rgba(255, 255, 255, 0.76)",
-    ...theme.shadow.tabBar
-  },
+    blur: {
+      height: 62,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: theme.colors.tabBarBorder,
+      borderRadius: 36,
+      backgroundColor: theme.colors.tabBarBackground,
+      ...theme.shadow.tabBar
+    },
 
-  bar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    paddingHorizontal: 8,
-    paddingVertical: 6
-  },
+    bar: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-around",
+      paddingHorizontal: 8,
+      paddingVertical: 6
+    },
 
-  item: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    item: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center"
+    },
 
-  itemPressed: {
-    opacity: 0.7
-  },
+    itemPressed: {
+      opacity: 0.7
+    },
 
-  itemContent: {
-    width: 96,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 29
-  },
+    itemContent: {
+      width: 96,
+      height: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 29
+    },
 
-  itemContentSelected: {
-    backgroundColor: theme.colors.primarySoft
-  },
+    itemContentSelected: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  label: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: "600",
-    color: theme.colors.textSecondary
-  },
+    label: {
+      marginTop: 3,
+      fontSize: 11,
+      lineHeight: 14,
+      fontWeight: "600",
+      color: theme.colors.textSecondary
+    },
 
-  labelSelected: {
-    fontWeight: "700",
-    color: theme.colors.primary
-  }
-});
+    labelSelected: {
+      fontWeight: "700",
+      color: theme.colors.primary
+    }
+  });
+}

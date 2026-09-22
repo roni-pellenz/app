@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Animated, Easing, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatCompetence, shiftCompetence } from "@/lib/format";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type MonthSelectorProps = {
   competence: string;
@@ -18,6 +19,10 @@ const VELOCITY_THRESHOLD = 0.45;
 const TRANSITION_DURATION = 190;
 
 export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const [displayedCompetence, setDisplayedCompetence] = useState(competence);
 
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -42,9 +47,11 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
     displayedCompetenceRef.current = competence;
 
     pendingDirectionRef.current = null;
+
     isAnimatingRef.current = false;
 
     translateX.stopAnimation();
+
     translateX.setValue(0);
 
     setDisplayedCompetence(competence);
@@ -57,16 +64,10 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
       return;
     }
 
-    /*
-     * Quando a animação termina, o mês que entrou pela lateral
-     * já está ocupando o centro visualmente.
-     *
-     * Atualizamos então a competência interna e zeramos a posição
-     * antes do próximo frame, fazendo o carrossel parecer infinito.
-     */
     translateX.setValue(0);
 
     pendingDirectionRef.current = null;
+
     isAnimatingRef.current = false;
 
     if (direction === "next") {
@@ -108,15 +109,6 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
 
     isAnimatingRef.current = true;
 
-    /*
-     * Regra de navegação escolhida para o app:
-     *
-     * arrastar para a direita -> próximo mês
-     * arrastar para a esquerda -> mês anterior
-     *
-     * Por isso o próximo mês fica preparado à esquerda
-     * e o mês anterior à direita.
-     */
     const targetPosition = direction === "next" ? viewportWidth : -viewportWidth;
 
     Animated.timing(translateX, {
@@ -150,6 +142,7 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
       }
 
       const horizontalDistance = Math.abs(gesture.dx);
+
       const verticalDistance = Math.abs(gesture.dy);
 
       return horizontalDistance > 6 && horizontalDistance > verticalDistance * 1.2;
@@ -304,56 +297,58 @@ export function MonthSelector({ competence, onPrevious, onNext }: MonthSelectorP
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    height: 46,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 23,
-    paddingHorizontal: 7,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      height: 46,
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 23,
+      paddingHorizontal: 7,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  button: {
-    width: 38,
-    height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 19
-  },
+    button: {
+      width: 38,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 19
+    },
 
-  buttonPressed: {
-    backgroundColor: theme.colors.primarySoft
-  },
+    buttonPressed: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  viewport: {
-    flex: 1,
-    height: "100%",
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    viewport: {
+      flex: 1,
+      height: "100%",
+      overflow: "hidden",
+      alignItems: "center",
+      justifyContent: "center"
+    },
 
-  track: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    flexDirection: "row"
-  },
+    track: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      flexDirection: "row"
+    },
 
-  slide: {
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    slide: {
+      height: "100%",
+      alignItems: "center",
+      justifyContent: "center"
+    },
 
-  label: {
-    width: "100%",
-    paddingHorizontal: 6,
-    textAlign: "center",
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text
-  }
-});
+    label: {
+      width: "100%",
+      paddingHorizontal: 6,
+      textAlign: "center",
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.colors.text
+    }
+  });
+}

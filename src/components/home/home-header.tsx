@@ -1,12 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type HomeHeaderProps = {
   name: string;
 };
 
 export function HomeHeader({ name }: HomeHeaderProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
@@ -27,43 +32,45 @@ export function HomeHeader({ name }: HomeHeaderProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  textContainer: {
-    flex: 1,
-    minWidth: 0,
-    paddingRight: 12
-  },
+    textContainer: {
+      flex: 1,
+      minWidth: 0,
+      paddingRight: 12
+    },
 
-  greeting: {
-    fontSize: 25,
-    lineHeight: 30,
-    fontWeight: "800",
-    letterSpacing: -0.75,
-    color: theme.colors.text
-  },
+    greeting: {
+      fontSize: 25,
+      lineHeight: 30,
+      fontWeight: "800",
+      letterSpacing: -0.75,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 5,
-    fontSize: 13,
-    lineHeight: 18,
-    color: theme.colors.textSecondary
-  },
+    subtitle: {
+      marginTop: 5,
+      fontSize: 13,
+      lineHeight: 18,
+      color: theme.colors.textSecondary
+    },
 
-  notification: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 22
-  },
+    notification: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 22
+    },
 
-  notificationPressed: {
-    backgroundColor: theme.colors.primarySoft
-  }
-});
+    notificationPressed: {
+      backgroundColor: theme.colors.primarySoft
+    }
+  });
+}

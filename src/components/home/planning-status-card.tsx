@@ -3,7 +3,8 @@ import type { ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { formatMoney } from "@/lib/format";
 import type { MonthlyPlanning } from "@/planning/planning.types";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -11,7 +12,7 @@ type PlanningStatusCardProps = {
   planning: MonthlyPlanning;
 };
 
-type PlanningStatus = {
+type StatusContent = {
   icon: IoniconName;
   iconColor: string;
   iconBackground: string;
@@ -20,7 +21,11 @@ type PlanningStatus = {
 };
 
 export function PlanningStatusCard({ planning }: PlanningStatusCardProps) {
-  const status = getPlanningStatus(planning);
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
+  const status = getPlanningStatus(planning, theme);
 
   return (
     <View style={styles.card}>
@@ -44,10 +49,12 @@ export function PlanningStatusCard({ planning }: PlanningStatusCardProps) {
   );
 }
 
-function getPlanningStatus(planning: MonthlyPlanning): PlanningStatus {
-  const hasPlanning = planning.incomes.totalCount > 0 || planning.expenses.totalCount > 0;
+function getPlanningStatus(planning: MonthlyPlanning, theme: AppTheme): StatusContent {
+  const hasNoPlanning = planning.incomes.totalCount === 0 && planning.expenses.totalCount === 0;
 
-  if (!hasPlanning) {
+  const plannedBalance = planning.balance.plannedAmount;
+
+  if (hasNoPlanning) {
     return {
       icon: "calendar-outline",
       iconColor: theme.colors.primary,
@@ -56,8 +63,6 @@ function getPlanningStatus(planning: MonthlyPlanning): PlanningStatus {
       description: "Cadastre receitas e despesas para acompanhar este mês."
     };
   }
-
-  const plannedBalance = planning.balance.plannedAmount;
 
   if (plannedBalance < 0) {
     return {
@@ -90,41 +95,44 @@ function getPlanningStatus(planning: MonthlyPlanning): PlanningStatus {
   };
 }
 
-const styles = StyleSheet.create({
-  card: {
-    minHeight: 76,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    card: {
+      minHeight: 76,
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 22,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  iconContainer: {
-    width: 41,
-    height: 41,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14
-  },
+    iconContainer: {
+      width: 41,
+      height: 41,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 14
+    },
 
-  content: {
-    flex: 1,
-    marginLeft: 12
-  },
+    content: {
+      flex: 1,
+      marginLeft: 12
+    },
 
-  title: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    title: {
+      fontSize: 14,
+      lineHeight: 18,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  description: {
-    marginTop: 3,
-    fontSize: 10,
-    lineHeight: 14,
-    color: theme.colors.textSecondary
-  }
-});
+    description: {
+      marginTop: 3,
+      fontSize: 10,
+      lineHeight: 14,
+      color: theme.colors.textSecondary
+    }
+  });
+}

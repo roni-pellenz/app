@@ -18,7 +18,8 @@ import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { getCurrentCompetence, shiftCompetence } from "@/lib/format";
 import { getMonthlyPlanning } from "@/planning/planning.api";
 import type { MonthlyPlanning } from "@/planning/planning.types";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type ScreenState = "loading" | "ready" | "error";
 
@@ -28,6 +29,10 @@ const TAB_BAR_HEIGHT = 62;
 
 export default function HomeScreen() {
   const { user, token, signOut } = useAuth();
+
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
 
   const insets = useSafeAreaInsets();
 
@@ -201,78 +206,80 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  root: {
-    flex: 1
-  },
+    root: {
+      flex: 1
+    },
 
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 28
-  },
+    content: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 28
+    },
 
-  monthContainer: {
-    marginTop: 25,
-    marginBottom: 19
-  },
+    monthContainer: {
+      marginTop: 25,
+      marginBottom: 19
+    },
 
-  homeStack: {
-    gap: HOME_CARD_GAP
-  },
+    homeStack: {
+      gap: HOME_CARD_GAP
+    },
 
-  loadingContainer: {
-    minHeight: 310,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    loadingContainer: {
+      minHeight: 310,
+      alignItems: "center",
+      justifyContent: "center"
+    },
 
-  errorCard: {
-    alignItems: "center",
-    borderRadius: theme.radius.large,
-    padding: 24,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    errorCard: {
+      alignItems: "center",
+      borderRadius: theme.radius.large,
+      padding: 24,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  errorTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    errorTitle: {
+      fontSize: 17,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  errorText: {
-    marginTop: 7,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    errorText: {
+      marginTop: 7,
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  retryButton: {
-    marginTop: 17,
-    borderRadius: theme.radius.medium,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    backgroundColor: theme.colors.primary
-  },
+    retryButton: {
+      marginTop: 17,
+      borderRadius: theme.radius.medium,
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+      backgroundColor: theme.colors.primary
+    },
 
-  retryPressed: {
-    opacity: 0.75
-  },
+    retryPressed: {
+      opacity: 0.75
+    },
 
-  retryText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFFFFF"
-  }
-});
+    retryText: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: theme.colors.onPrimary
+    }
+  });
+}

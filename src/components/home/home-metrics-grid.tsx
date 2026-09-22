@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from "react-native";
 import type { HomeMetricsLayout } from "@/account/account-preferences.storage";
 import { getCurrentCompetence } from "@/lib/format";
 import type { MonthlyPlanning, PlanningExpense } from "@/planning/planning.types";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -35,17 +36,19 @@ export function HomeMetricsGrid({
   showUpcomingExpenses = true,
   layout = "detailed"
 }: HomeMetricsGridProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const installmentCount = planning.items.expenses.filter(
     (expense) => expense.installmentNumber !== null
   ).length;
 
   const isCurrentCompetence = planning.competence.slice(0, 7) === getCurrentCompetence();
 
-  const shouldShowUpcomingExpenses = showUpcomingExpenses && isCurrentCompetence;
+  const shouldShowUpcoming = showUpcomingExpenses && isCurrentCompetence;
 
-  const upcomingCount = shouldShowUpcomingExpenses
-    ? countUpcomingExpenses(planning.items.expenses)
-    : 0;
+  const upcomingCount = shouldShowUpcoming ? countUpcomingExpenses(planning.items.expenses) : 0;
 
   if (layout === "compact") {
     return (
@@ -78,10 +81,10 @@ export function HomeMetricsGrid({
             label="Parcelas"
             iconColor={theme.colors.primary}
             iconBackground={theme.colors.primarySoft}
-            showRightDivider={shouldShowUpcomingExpenses}
+            showRightDivider={shouldShowUpcoming}
           />
 
-          {shouldShowUpcomingExpenses ? (
+          {shouldShowUpcoming ? (
             <CompactMetric
               icon="star-outline"
               value={upcomingCount}
@@ -119,10 +122,10 @@ export function HomeMetricsGrid({
         label="Parcelas"
         iconColor={theme.colors.primary}
         iconBackground={theme.colors.primarySoft}
-        fullWidth={!shouldShowUpcomingExpenses}
+        fullWidth={!shouldShowUpcoming}
       />
 
-      {shouldShowUpcomingExpenses ? (
+      {shouldShowUpcoming ? (
         <DetailedMetricCard
           icon="star-outline"
           value={upcomingCount}
@@ -143,6 +146,10 @@ function DetailedMetricCard({
   iconBackground,
   fullWidth = false
 }: DetailedMetricCardProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={[styles.card, fullWidth && styles.cardFullWidth]}>
       <View
@@ -175,6 +182,10 @@ function CompactMetric({
   iconBackground,
   showRightDivider = false
 }: CompactMetricProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={[styles.compactMetric, showRightDivider && styles.compactMetricRightDivider]}>
       <View
@@ -225,114 +236,116 @@ function countUpcomingExpenses(expenses: PlanningExpense[]): number {
   }).length;
 }
 
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 13
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 13
+    },
 
-  card: {
-    width: "47.8%",
-    minHeight: 86,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    card: {
+      width: "47.8%",
+      minHeight: 86,
+      flexDirection: "row",
+      alignItems: "center",
+      borderRadius: 22,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  cardFullWidth: {
-    width: "100%"
-  },
+    cardFullWidth: {
+      width: "100%"
+    },
 
-  iconContainer: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14
-  },
+    iconContainer: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 14
+    },
 
-  textContainer: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 11
-  },
+    textContainer: {
+      flex: 1,
+      minWidth: 0,
+      marginLeft: 11
+    },
 
-  value: {
-    fontSize: 20,
-    lineHeight: 22,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    value: {
+      fontSize: 20,
+      lineHeight: 22,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  label: {
-    marginTop: 3,
-    fontSize: 10,
-    lineHeight: 14,
-    color: theme.colors.textSecondary
-  },
+    label: {
+      marginTop: 3,
+      fontSize: 10,
+      lineHeight: 14,
+      color: theme.colors.textSecondary
+    },
 
-  compactCard: {
-    overflow: "hidden",
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    compactCard: {
+      overflow: "hidden",
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  compactRow: {
-    flexDirection: "row"
-  },
+    compactRow: {
+      flexDirection: "row"
+    },
 
-  compactMetric: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 64,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 13,
-    paddingVertical: 10
-  },
+    compactMetric: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 64,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 13,
+      paddingVertical: 10
+    },
 
-  compactMetricRightDivider: {
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: theme.colors.border
-  },
+    compactMetricRightDivider: {
+      borderRightWidth: StyleSheet.hairlineWidth,
+      borderRightColor: theme.colors.border
+    },
 
-  compactHorizontalDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginHorizontal: 13,
-    backgroundColor: theme.colors.border
-  },
+    compactHorizontalDivider: {
+      height: StyleSheet.hairlineWidth,
+      marginHorizontal: 13,
+      backgroundColor: theme.colors.border
+    },
 
-  compactIconContainer: {
-    width: 34,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 11
-  },
+    compactIconContainer: {
+      width: 34,
+      height: 34,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 11
+    },
 
-  compactTextContainer: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 9
-  },
+    compactTextContainer: {
+      flex: 1,
+      minWidth: 0,
+      marginLeft: 9
+    },
 
-  compactValue: {
-    fontSize: 18,
-    lineHeight: 20,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    compactValue: {
+      fontSize: 18,
+      lineHeight: 20,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  compactLabel: {
-    marginTop: 2,
-    fontSize: 11,
-    lineHeight: 14,
-    color: theme.colors.textSecondary
-  }
-});
+    compactLabel: {
+      marginTop: 2,
+      fontSize: 11,
+      lineHeight: 14,
+      color: theme.colors.textSecondary
+    }
+  });
+}
