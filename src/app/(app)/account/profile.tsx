@@ -18,10 +18,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { getApiErrorMessage } from "@/lib/api";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export default function ProfileScreen() {
   const { user, updateProfile, deleteAccount } = useAuth();
+
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [name, setName] = useState(user?.name ?? "");
 
@@ -117,8 +122,11 @@ export default function ProfileScreen() {
 
   function openDeleteModal(): void {
     setDeletePassword("");
+
     setDeleteConfirmation("");
+
     setDeletePasswordVisible(false);
+
     setDeleteModalVisible(true);
   }
 
@@ -128,8 +136,11 @@ export default function ProfileScreen() {
     }
 
     setDeleteModalVisible(false);
+
     setDeletePassword("");
+
     setDeleteConfirmation("");
+
     setDeletePasswordVisible(false);
   }
 
@@ -322,6 +333,8 @@ export default function ProfileScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!deleting}
+                  keyboardAppearance={resolvedThemeMode}
+                  selectionColor={theme.colors.primary}
                   style={styles.passwordInput}
                 />
 
@@ -349,6 +362,8 @@ export default function ProfileScreen() {
                 autoCapitalize="characters"
                 autoCorrect={false}
                 editable={!deleting}
+                keyboardAppearance={resolvedThemeMode}
+                selectionColor={theme.colors.primary}
                 style={styles.confirmInput}
               />
 
@@ -376,7 +391,7 @@ export default function ProfileScreen() {
                   ]}
                 >
                   {deleting ? (
-                    <ActivityIndicator color="#FFFFFF" />
+                    <ActivityIndicator color={theme.colors.onPrimary} />
                   ) : (
                     <Text style={styles.confirmDeleteButtonText}>Excluir</Text>
                   )}
@@ -411,6 +426,10 @@ function Field({
   maxLength,
   returnKeyType
 }: FieldProps) {
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -419,6 +438,8 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
+        keyboardAppearance={resolvedThemeMode}
+        selectionColor={theme.colors.primary}
         autoCapitalize={autoCapitalize}
         autoCorrect={autoCorrect}
         maxLength={maxLength}
@@ -441,327 +462,335 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1
+    },
 
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 40
-  },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 40
+    },
 
-  navigation: {
-    height: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+    navigation: {
+      height: 48,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  backText: {
-    marginLeft: -3,
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    backText: {
+      marginLeft: -3,
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  saveText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: theme.colors.primary
-  },
+    saveText: {
+      fontSize: 17,
+      fontWeight: "700",
+      color: theme.colors.primary
+    },
 
-  saveTextDisabled: {
-    opacity: 0.35
-  },
+    saveTextDisabled: {
+      opacity: 0.35
+    },
 
-  header: {
-    alignItems: "center",
-    marginTop: 22
-  },
+    header: {
+      alignItems: "center",
+      marginTop: 22
+    },
 
-  avatar: {
-    width: 78,
-    height: 78,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 39,
-    backgroundColor: "#DCEBFC"
-  },
+    avatar: {
+      width: 78,
+      height: 78,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 39,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  initials: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "800",
-    letterSpacing: -0.9,
-    color: "#06183C"
-  },
+    initials: {
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: "800",
+      letterSpacing: -0.9,
+      color: theme.colors.primary
+    },
 
-  title: {
-    marginTop: 14,
-    fontSize: 27,
-    lineHeight: 33,
-    fontWeight: "800",
-    letterSpacing: -0.8,
-    color: theme.colors.text
-  },
+    title: {
+      marginTop: 14,
+      fontSize: 27,
+      lineHeight: 33,
+      fontWeight: "800",
+      letterSpacing: -0.8,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 5,
-    paddingHorizontal: 18,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    subtitle: {
+      marginTop: 5,
+      paddingHorizontal: 18,
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  formCard: {
-    overflow: "hidden",
-    marginTop: 26,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    formCard: {
+      overflow: "hidden",
+      marginTop: 26,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  field: {
-    paddingHorizontal: 17,
-    paddingTop: 13,
-    paddingBottom: 11
-  },
+    field: {
+      paddingHorizontal: 17,
+      paddingTop: 13,
+      paddingBottom: 11
+    },
 
-  fieldLabel: {
-    marginBottom: 4,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: "700",
-    color: theme.colors.textSecondary
-  },
+    fieldLabel: {
+      marginBottom: 4,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: "700",
+      color: theme.colors.textSecondary
+    },
 
-  input: {
-    minHeight: 30,
-    padding: 0,
-    fontSize: 16,
-    lineHeight: 21,
-    color: theme.colors.text
-  },
+    input: {
+      minHeight: 30,
+      padding: 0,
+      fontSize: 16,
+      lineHeight: 21,
+      color: theme.colors.text
+    },
 
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 17,
-    backgroundColor: theme.colors.border
-  },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      marginLeft: 17,
+      backgroundColor: theme.colors.border
+    },
 
-  infoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 14,
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: theme.colors.primarySoft
-  },
+    infoCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 18,
+      padding: 14,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  infoIcon: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 11,
-    backgroundColor: "rgba(255,255,255,0.65)"
-  },
+    infoIcon: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 11,
+      backgroundColor: theme.colors.iconSurface
+    },
 
-  infoText: {
-    flex: 1,
-    marginLeft: 11,
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#49678F"
-  },
+    infoText: {
+      flex: 1,
+      marginLeft: 11,
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.colors.textSecondary
+    },
 
-  dangerSection: {
-    marginTop: 30,
-    borderRadius: 22,
-    padding: 17,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    dangerSection: {
+      marginTop: 30,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      padding: 17,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  dangerTitle: {
-    fontSize: 16,
-    lineHeight: 21,
-    fontWeight: "800",
-    color: theme.colors.danger
-  },
+    dangerTitle: {
+      fontSize: 16,
+      lineHeight: 21,
+      fontWeight: "800",
+      color: theme.colors.danger
+    },
 
-  dangerDescription: {
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 19,
-    color: theme.colors.textSecondary
-  },
+    dangerDescription: {
+      marginTop: 6,
+      fontSize: 13,
+      lineHeight: 19,
+      color: theme.colors.textSecondary
+    },
 
-  deleteButton: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.danger,
-    borderRadius: 15,
-    backgroundColor: theme.colors.dangerSoft
-  },
+    deleteButton: {
+      minHeight: 48,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.danger,
+      borderRadius: 15,
+      backgroundColor: theme.colors.dangerSoft
+    },
 
-  deleteButtonPressed: {
-    opacity: 0.7
-  },
+    deleteButtonPressed: {
+      opacity: 0.7
+    },
 
-  deleteButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.danger
-  },
+    deleteButtonText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.danger
+    },
 
-  modalRoot: {
-    flex: 1
-  },
+    modalRoot: {
+      flex: 1
+    },
 
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 22,
-    backgroundColor: "rgba(8, 18, 40, 0.44)"
-  },
+    modalBackdrop: {
+      flex: 1,
+      justifyContent: "center",
+      paddingHorizontal: 22,
+      backgroundColor: theme.colors.modalBackdrop
+    },
 
-  modalCard: {
-    borderRadius: 26,
-    padding: 20,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    modalCard: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 26,
+      padding: 20,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  modalDangerIcon: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-    borderRadius: 17,
-    backgroundColor: theme.colors.dangerSoft
-  },
+    modalDangerIcon: {
+      width: 52,
+      height: 52,
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: "center",
+      borderRadius: 17,
+      backgroundColor: theme.colors.dangerSoft
+    },
 
-  modalTitle: {
-    marginTop: 14,
-    fontSize: 20,
-    lineHeight: 25,
-    textAlign: "center",
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    modalTitle: {
+      marginTop: 14,
+      fontSize: 20,
+      lineHeight: 25,
+      textAlign: "center",
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  modalDescription: {
-    marginTop: 7,
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    modalDescription: {
+      marginTop: 7,
+      fontSize: 13,
+      lineHeight: 19,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  modalFieldLabel: {
-    marginTop: 18,
-    marginBottom: 7,
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#344B70"
-  },
+    modalFieldLabel: {
+      marginTop: 18,
+      marginBottom: 7,
+      fontSize: 13,
+      fontWeight: "700",
+      color: theme.colors.textSecondary
+    },
 
-  passwordInputContainer: {
-    height: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#C9D8EA",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    passwordInputContainer: {
+      height: 50,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  passwordInput: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 16,
-    color: theme.colors.text
-  },
+    passwordInput: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 16,
+      color: theme.colors.text
+    },
 
-  confirmInput: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#C9D8EA",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    color: theme.colors.text,
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    confirmInput: {
+      height: 50,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      fontSize: 16,
+      color: theme.colors.text,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  modalActions: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 22
-  },
+    modalActions: {
+      flexDirection: "row",
+      gap: 10,
+      marginTop: 22
+    },
 
-  cancelButton: {
-    flex: 1,
-    height: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 15,
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    cancelButton: {
+      flex: 1,
+      height: 50,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 15,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    cancelButtonText: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  confirmDeleteButton: {
-    flex: 1,
-    height: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 15,
-    backgroundColor: theme.colors.danger
-  },
+    confirmDeleteButton: {
+      flex: 1,
+      height: 50,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 15,
+      backgroundColor: theme.colors.danger
+    },
 
-  confirmDeleteButtonDisabled: {
-    opacity: 0.4
-  },
+    confirmDeleteButtonDisabled: {
+      opacity: 0.4
+    },
 
-  confirmDeleteButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF"
-  },
+    confirmDeleteButtonText: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.colors.onPrimary
+    },
 
-  actionButtonPressed: {
-    opacity: 0.7
-  }
-});
+    actionButtonPressed: {
+      opacity: 0.7
+    }
+  });
+}

@@ -1,8 +1,9 @@
-import type { ComponentProps } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import { StyleSheet, View } from "react-native";
 import { AccountMenuItem } from "@/components/account/account-menu-item";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -20,6 +21,10 @@ type AccountMenuCardProps = {
 };
 
 export function AccountMenuCard({ items }: AccountMenuCardProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.card}>
       {items.map((item, index) => (
@@ -37,11 +42,15 @@ export function AccountMenuCard({ items }: AccountMenuCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    overflow: "hidden",
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  }
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    card: {
+      overflow: "hidden",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    }
+  });
+}

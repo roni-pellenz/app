@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -22,6 +23,10 @@ export function AccountMenuItem({
   showChevron = true,
   onPress
 }: AccountMenuItemProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const content = (
     <View style={styles.content}>
       <View style={styles.iconContainer}>
@@ -41,7 +46,9 @@ export function AccountMenuItem({
           ) : null}
         </View>
 
-        {showChevron ? <Ionicons name="chevron-forward" size={20} color="#52719B" /> : null}
+        {showChevron ? (
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+        ) : null}
       </View>
     </View>
   );
@@ -60,61 +67,63 @@ export function AccountMenuItem({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    minHeight: 66
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      minHeight: 66
+    },
 
-  pressed: {
-    opacity: 0.62
-  },
+    pressed: {
+      opacity: 0.62
+    },
 
-  content: {
-    minHeight: 66,
-    flexDirection: "row",
-    alignItems: "stretch",
-    paddingLeft: 16
-  },
+    content: {
+      minHeight: 66,
+      flexDirection: "row",
+      alignItems: "stretch",
+      paddingLeft: 16
+    },
 
-  iconContainer: {
-    width: 46,
-    alignItems: "flex-start",
-    justifyContent: "center"
-  },
+    iconContainer: {
+      width: 46,
+      alignItems: "flex-start",
+      justifyContent: "center"
+    },
 
-  textContainer: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingRight: 16
-  },
+    textContainer: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingRight: 16
+    },
 
-  textContainerDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border
-  },
+    textContainerDivider: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.border
+    },
 
-  textBlock: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: "center",
-    paddingVertical: 10,
-    paddingRight: 8
-  },
+    textBlock: {
+      flex: 1,
+      minWidth: 0,
+      justifyContent: "center",
+      paddingVertical: 10,
+      paddingRight: 8
+    },
 
-  title: {
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: theme.colors.text
-  },
+    title: {
+      fontSize: 15,
+      lineHeight: 19,
+      fontWeight: "700",
+      letterSpacing: -0.3,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 2,
-    fontSize: 13,
-    lineHeight: 17,
-    color: "#526D94"
-  }
-});
+    subtitle: {
+      marginTop: 2,
+      fontSize: 13,
+      lineHeight: 17,
+      color: theme.colors.textSecondary
+    }
+  });
+}

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,10 +17,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { getApiErrorMessage } from "@/lib/api";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export default function SecurityScreen() {
   const { changePassword, signOut } = useAuth();
+
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [currentPassword, setCurrentPassword] = useState("");
 
@@ -224,10 +229,14 @@ export default function SecurityScreen() {
               ]}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.colors.onPrimary} />
               ) : (
                 <>
-                  <Ionicons name="shield-checkmark-outline" size={21} color="#FFFFFF" />
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={21}
+                    color={theme.colors.onPrimary}
+                  />
 
                   <Text style={styles.saveButtonText}>Alterar senha</Text>
                 </>
@@ -257,6 +266,10 @@ function PasswordField({
   visible,
   onToggleVisibility
 }: PasswordFieldProps) {
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -271,6 +284,8 @@ function PasswordField({
           autoCapitalize="none"
           autoCorrect={false}
           maxLength={72}
+          keyboardAppearance={resolvedThemeMode}
+          selectionColor={theme.colors.primary}
           style={styles.passwordInput}
         />
 
@@ -294,232 +309,238 @@ function PasswordField({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1
+    },
 
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 40
-  },
+    content: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 40
+    },
 
-  navigation: {
-    height: 48,
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    navigation: {
+      height: 48,
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    backButton: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  backText: {
-    marginLeft: -3,
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    backText: {
+      marginLeft: -3,
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  header: {
-    alignItems: "center",
-    marginTop: 22
-  },
+    header: {
+      alignItems: "center",
+      marginTop: 22
+    },
 
-  heroIcon: {
-    width: 78,
-    height: 78,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 23,
-    backgroundColor: theme.colors.primarySoft
-  },
+    heroIcon: {
+      width: 78,
+      height: 78,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 23,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  title: {
-    marginTop: 14,
-    fontSize: 27,
-    lineHeight: 33,
-    fontWeight: "800",
-    letterSpacing: -0.8,
-    color: theme.colors.text
-  },
+    title: {
+      marginTop: 14,
+      fontSize: 27,
+      lineHeight: 33,
+      fontWeight: "800",
+      letterSpacing: -0.8,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 5,
-    maxWidth: 310,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    subtitle: {
+      marginTop: 5,
+      maxWidth: 310,
+      fontSize: 14,
+      lineHeight: 20,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  formCard: {
-    overflow: "hidden",
-    marginTop: 26,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    formCard: {
+      overflow: "hidden",
+      marginTop: 26,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  field: {
-    paddingHorizontal: 17,
-    paddingTop: 13,
-    paddingBottom: 11
-  },
+    field: {
+      paddingHorizontal: 17,
+      paddingTop: 13,
+      paddingBottom: 11
+    },
 
-  fieldLabel: {
-    marginBottom: 6,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: "700",
-    color: theme.colors.textSecondary
-  },
+    fieldLabel: {
+      marginBottom: 6,
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: "700",
+      color: theme.colors.textSecondary
+    },
 
-  passwordRow: {
-    minHeight: 38,
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    passwordRow: {
+      minHeight: 38,
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  passwordInput: {
-    flex: 1,
-    minWidth: 0,
-    padding: 0,
-    paddingRight: 8,
-    fontSize: 16,
-    lineHeight: 21,
-    color: theme.colors.text
-  },
+    passwordInput: {
+      flex: 1,
+      minWidth: 0,
+      padding: 0,
+      paddingRight: 8,
+      fontSize: 16,
+      lineHeight: 21,
+      color: theme.colors.text
+    },
 
-  eyeButton: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18
-  },
+    eyeButton: {
+      width: 36,
+      height: 36,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 18
+    },
 
-  eyeButtonPressed: {
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    eyeButtonPressed: {
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 17,
-    backgroundColor: theme.colors.border
-  },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      marginLeft: 17,
+      backgroundColor: theme.colors.border
+    },
 
-  requirementCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 14,
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: theme.colors.primarySoft
-  },
+    requirementCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 18,
+      padding: 14,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  requirementIcon: {
-    width: 38,
-    height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.68)"
-  },
+    requirementIcon: {
+      width: 38,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12,
+      backgroundColor: theme.colors.iconSurface
+    },
 
-  requirementContent: {
-    flex: 1,
-    marginLeft: 12
-  },
+    requirementContent: {
+      flex: 1,
+      marginLeft: 12
+    },
 
-  requirementTitle: {
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    requirementTitle: {
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  requirementText: {
-    marginTop: 2,
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#49678F"
-  },
+    requirementText: {
+      marginTop: 2,
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.colors.textSecondary
+    },
 
-  sessionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: theme.colors.warningSoft
-  },
+    sessionCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 18,
+      padding: 14,
+      backgroundColor: theme.colors.warningSoft
+    },
 
-  sessionIcon: {
-    width: 38,
-    height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.68)"
-  },
+    sessionIcon: {
+      width: 38,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12,
+      backgroundColor: theme.colors.iconSurface
+    },
 
-  sessionContent: {
-    flex: 1,
-    marginLeft: 12
-  },
+    sessionContent: {
+      flex: 1,
+      marginLeft: 12
+    },
 
-  sessionTitle: {
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    sessionTitle: {
+      fontSize: 13,
+      lineHeight: 17,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  sessionText: {
-    marginTop: 2,
-    fontSize: 12,
-    lineHeight: 17,
-    color: theme.colors.textSecondary
-  },
+    sessionText: {
+      marginTop: 2,
+      fontSize: 12,
+      lineHeight: 17,
+      color: theme.colors.textSecondary
+    },
 
-  saveButton: {
-    height: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 22,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primary
-  },
+    saveButton: {
+      height: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 22,
+      borderRadius: 16,
+      backgroundColor: theme.colors.primary
+    },
 
-  saveButtonDisabled: {
-    opacity: 0.4
-  },
+    saveButtonDisabled: {
+      opacity: 0.4
+    },
 
-  saveButtonPressed: {
-    opacity: 0.75
-  },
+    saveButtonPressed: {
+      opacity: 0.75
+    },
 
-  saveButtonText: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: "700",
-    color: "#FFFFFF"
-  }
-});
+    saveButtonText: {
+      fontSize: 16,
+      lineHeight: 20,
+      fontWeight: "700",
+      color: theme.colors.onPrimary
+    }
+  });
+}

@@ -5,10 +5,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
 import { AccountMenuCard, type AccountMenuCardItem } from "@/components/account/account-menu-card";
 import { AccountProfileCard } from "@/components/account/account-profile-card";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export default function AccountScreen() {
   const { user, signOut } = useAuth();
+
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
 
   function openProfile(): void {
     router.push("/account/profile");
@@ -129,47 +134,49 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 94
-  },
+    content: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 94
+    },
 
-  header: {
-    paddingHorizontal: 1
-  },
+    header: {
+      paddingHorizontal: 1
+    },
 
-  title: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: "800",
-    letterSpacing: -1.1,
-    color: theme.colors.text
-  },
+    title: {
+      fontSize: 32,
+      lineHeight: 38,
+      fontWeight: "800",
+      letterSpacing: -1.1,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 3,
-    fontSize: 16,
-    lineHeight: 21,
-    color: "#49678F"
-  },
+    subtitle: {
+      marginTop: 3,
+      fontSize: 16,
+      lineHeight: 21,
+      color: theme.colors.subtitle
+    },
 
-  profileContainer: {
-    marginTop: 18
-  },
+    profileContainer: {
+      marginTop: 18
+    },
 
-  sectionContainer: {
-    marginTop: 14
-  }
-});
+    sectionContainer: {
+      marginTop: 14
+    }
+  });
+}
