@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
@@ -12,7 +12,8 @@ import { formatExpenseNotification } from "@/expense/expense.metadata";
 import type { ExpenseDetail, ExpenseRecurrenceFrequency } from "@/expense/expense.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { formatCompetence, formatMoney } from "@/lib/format";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export default function ExpenseDetailScreen() {
   const params = useLocalSearchParams<{
@@ -20,6 +21,10 @@ export default function ExpenseDetailScreen() {
   }>();
 
   const { token, signOut } = useAuth();
+
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [expense, setExpense] = useState<ExpenseDetail | null>(null);
 
@@ -60,28 +65,38 @@ export default function ExpenseDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <LinearGradient
+          colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
+          style={styles.gradient}
+        >
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        </LinearGradient>
       </SafeAreaView>
     );
   }
 
   if (!expense) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{error ?? "Despesa não encontrada."}</Text>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <LinearGradient
+          colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
+          style={styles.gradient}
+        >
+          <View style={styles.center}>
+            <Text style={styles.errorText}>{error ?? "Despesa não encontrada."}</Text>
 
-          <Pressable
-            onPress={() => {
-              router.back();
-            }}
-          >
-            <Text style={styles.link}>Voltar</Text>
-          </Pressable>
-        </View>
+            <Pressable
+              onPress={() => {
+                router.back();
+              }}
+            >
+              <Text style={styles.link}>Voltar</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
       </SafeAreaView>
     );
   }
@@ -95,6 +110,9 @@ export default function ExpenseDetailScreen() {
     : currentExpense.recurrence
       ? "Despesa recorrente"
       : "Despesa pontual";
+
+  const iconBackground =
+    resolvedThemeMode === "dark" ? theme.colors.surfaceElevated : appearance.backgroundColor;
 
   function handleEdit(): void {
     router.push({
@@ -134,7 +152,7 @@ export default function ExpenseDetailScreen() {
               style={[
                 styles.icon,
                 {
-                  backgroundColor: appearance.backgroundColor
+                  backgroundColor: iconBackground
                 }
               ]}
             >
@@ -166,6 +184,10 @@ export default function ExpenseDetailScreen() {
 }
 
 function RecurringExpenseDetails({ expense }: { expense: ExpenseDetail }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const recurrence = expense.recurrence;
 
   if (!recurrence) {
@@ -177,23 +199,25 @@ function RecurringExpenseDetails({ expense }: { expense: ExpenseDetail }) {
       <ExpenseDetailRow
         icon="calendar-outline"
         label="Vencimento"
-        value={`Dia ${formatDayFromDate(expense.dueDate)}`}
+        value={formatDate(expense.dueDate)}
+      />
+
+      <ExpenseDetailRow
+        icon="repeat-outline"
+        label="Dia da recorrência"
+        value={`Dia ${recurrence.dueDay}`}
       />
 
       <ExpenseDetailRow
         icon="card-outline"
         label="Pagamento"
-        value={
-          expense.plannedPaymentDate
-            ? `Dia ${formatDayFromDate(expense.plannedPaymentDate)}`
-            : "Não definido"
-        }
+        value={expense.plannedPaymentDate ? formatDate(expense.plannedPaymentDate) : "Não definido"}
       />
 
       <ExpenseDetailRow
         icon="calendar-outline"
         label="Competência"
-        value="Mesmo mês do vencimento"
+        value={formatCompetence(expense.competence.slice(0, 7))}
       />
 
       <ExpenseDetailRow
@@ -217,6 +241,10 @@ function RecurringExpenseDetails({ expense }: { expense: ExpenseDetail }) {
 }
 
 function InstallmentExpenseDetails({ expense }: { expense: ExpenseDetail }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const plan = expense.installmentPlan;
 
   if (!plan) {
@@ -270,6 +298,10 @@ function InstallmentExpenseDetails({ expense }: { expense: ExpenseDetail }) {
 }
 
 function OneOffExpenseDetails({ expense }: { expense: ExpenseDetail }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.detailCard}>
       <ExpenseDetailRow
@@ -296,6 +328,10 @@ function OneOffExpenseDetails({ expense }: { expense: ExpenseDetail }) {
 }
 
 function ExpenseMetadataDetails({ expense }: { expense: ExpenseDetail }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const hasNotes = Boolean(expense.notes?.trim());
 
   return (
@@ -313,7 +349,7 @@ function ExpenseMetadataDetails({ expense }: { expense: ExpenseDetail }) {
         <View style={styles.notesCard}>
           <View style={styles.metadataHeader}>
             <View style={styles.metadataIcon}>
-              <Ionicons name="document-text-outline" size={21} color="#526D94" />
+              <Ionicons name="document-text-outline" size={21} color={theme.colors.textSecondary} />
             </View>
 
             <Text style={styles.metadataTitle}>Observações</Text>
@@ -359,12 +395,6 @@ function ExpenseMetadataDetails({ expense }: { expense: ExpenseDetail }) {
   );
 }
 
-function formatDayFromDate(value: string): string {
-  const day = value.slice(8, 10);
-
-  return day || "--";
-}
-
 function formatDate(value: string): string {
   const datePart = value.slice(0, 10);
 
@@ -391,207 +421,214 @@ function formatFrequency(frequency: ExpenseRecurrenceFrequency): string {
   }
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 36
-  },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 36
+    },
 
-  navigation: {
-    height: 46,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+    navigation: {
+      height: 46,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  navButton: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    navButton: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  navButtonText: {
-    marginLeft: -3,
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    navButtonText: {
+      marginLeft: -3,
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  editText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    editText: {
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  hero: {
-    alignItems: "center",
-    marginTop: 22
-  },
+    hero: {
+      alignItems: "center",
+      marginTop: 22
+    },
 
-  icon: {
-    width: 78,
-    height: 78,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 22
-  },
+    icon: {
+      width: 78,
+      height: 78,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 22
+    },
 
-  name: {
-    marginTop: 12,
-    fontSize: 27,
-    lineHeight: 32,
-    fontWeight: "800",
-    letterSpacing: -0.8,
-    color: theme.colors.text
-  },
+    name: {
+      marginTop: 12,
+      fontSize: 27,
+      lineHeight: 32,
+      textAlign: "center",
+      fontWeight: "800",
+      letterSpacing: -0.8,
+      color: theme.colors.text
+    },
 
-  typeBadge: {
-    marginTop: 7,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-    backgroundColor: theme.colors.primarySoft
-  },
+    typeBadge: {
+      marginTop: 7,
+      borderRadius: 999,
+      paddingHorizontal: 18,
+      paddingVertical: 6,
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  typeText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#526D94"
-  },
+    typeText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  amount: {
-    marginTop: 17,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "800",
-    color: "#07143A"
-  },
+    amount: {
+      marginTop: 17,
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  detailCard: {
-    overflow: "hidden",
-    marginTop: 24,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.72)"
-  },
+    detailCard: {
+      overflow: "hidden",
+      marginTop: 24,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  metadataCard: {
-    overflow: "hidden",
-    marginTop: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.72)"
-  },
+    metadataCard: {
+      overflow: "hidden",
+      marginTop: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  notesCard: {
-    marginTop: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    padding: 16,
-    backgroundColor: "rgba(255,255,255,0.72)"
-  },
+    notesCard: {
+      marginTop: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      padding: 16,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  metadataHeader: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    metadataHeader: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  metadataIcon: {
-    width: 34,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    metadataIcon: {
+      width: 34,
+      height: 34,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 10,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  metadataTitle: {
-    marginLeft: 10,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#344B70"
-  },
+    metadataTitle: {
+      marginLeft: 10,
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  notesText: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 20,
-    color: theme.colors.text
-  },
+    notesText: {
+      marginTop: 12,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.textSecondary
+    },
 
-  notificationCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    padding: 15,
-    backgroundColor: "rgba(255,255,255,0.72)"
-  },
+    notificationCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 14,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      padding: 15,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  notificationIcon: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 13
-  },
+    notificationIcon: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 13
+    },
 
-  notificationIconEnabled: {
-    backgroundColor: theme.colors.primarySoft
-  },
+    notificationIconEnabled: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  notificationIconDisabled: {
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    notificationIconDisabled: {
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  notificationContent: {
-    flex: 1,
-    marginLeft: 13
-  },
+    notificationContent: {
+      flex: 1,
+      marginLeft: 13
+    },
 
-  notificationTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
+    notificationTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  notificationText: {
-    marginTop: 3,
-    fontSize: 13,
-    color: theme.colors.textSecondary
-  },
+    notificationText: {
+      marginTop: 3,
+      fontSize: 13,
+      color: theme.colors.textSecondary
+    },
 
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24
-  },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24
+    },
 
-  errorText: {
-    fontSize: 14,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    errorText: {
+      fontSize: 14,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  link: {
-    marginTop: 16,
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.primary
-  }
-});
+    link: {
+      marginTop: 16,
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.colors.primary
+    }
+  });
+}

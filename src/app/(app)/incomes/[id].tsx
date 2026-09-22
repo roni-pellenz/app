@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import type { ComponentProps } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
@@ -11,14 +10,8 @@ import { getIncome } from "@/income/income.api";
 import type { IncomeDetail, IncomeRecurrenceFrequency } from "@/income/income.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { formatCompetence, formatMoney } from "@/lib/format";
-import { theme } from "@/theme/theme";
-
-type IoniconName = ComponentProps<typeof Ionicons>["name"];
-
-type IncomeStatus = {
-  label: string;
-  icon: IoniconName;
-};
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export default function IncomeDetailScreen() {
   const params = useLocalSearchParams<{
@@ -26,6 +19,10 @@ export default function IncomeDetailScreen() {
   }>();
 
   const { token, signOut } = useAuth();
+
+  const { theme } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [income, setIncome] = useState<IncomeDetail | null>(null);
 
@@ -66,28 +63,38 @@ export default function IncomeDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <LinearGradient
+          colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
+          style={styles.gradient}
+        >
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        </LinearGradient>
       </SafeAreaView>
     );
   }
 
   if (!income) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{error ?? "Receita não encontrada."}</Text>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <LinearGradient
+          colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
+          style={styles.gradient}
+        >
+          <View style={styles.center}>
+            <Text style={styles.errorText}>{error ?? "Receita não encontrada."}</Text>
 
-          <Pressable
-            onPress={() => {
-              router.back();
-            }}
-          >
-            <Text style={styles.link}>Voltar</Text>
-          </Pressable>
-        </View>
+            <Pressable
+              onPress={() => {
+                router.back();
+              }}
+            >
+              <Text style={styles.link}>Voltar</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
       </SafeAreaView>
     );
   }
@@ -134,7 +141,7 @@ export default function IncomeDetailScreen() {
               <Ionicons
                 name={recurring ? "briefcase-outline" : "star-outline"}
                 size={40}
-                color={recurring ? "#F28A00" : "#EFA500"}
+                color={recurring ? theme.colors.warning : theme.colors.primary}
               />
             </View>
 
@@ -146,9 +153,7 @@ export default function IncomeDetailScreen() {
               </Text>
             </View>
 
-            <Text style={[styles.amount, currentIncome.receivedDate && styles.receivedAmount]}>
-              {formatMoney(currentIncome.amount)}
-            </Text>
+            <Text style={styles.amount}>{formatMoney(currentIncome.amount)}</Text>
           </View>
 
           {currentIncome.recurrence ? (
@@ -163,13 +168,15 @@ export default function IncomeDetailScreen() {
 }
 
 function RecurringIncomeDetails({ income }: { income: IncomeDetail }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   const recurrence = income.recurrence;
 
   if (!recurrence) {
     return null;
   }
-
-  const status = getIncomeStatus(income);
 
   return (
     <View style={styles.detailCard}>
@@ -207,7 +214,11 @@ function RecurringIncomeDetails({ income }: { income: IncomeDetail }) {
         }
       />
 
-      <ExpenseDetailRow icon={status.icon} label="Status" value={status.label} />
+      <ExpenseDetailRow
+        icon={income.receivedDate ? "checkmark-circle-outline" : "time-outline"}
+        label="Status"
+        value={income.receivedDate ? "Recebida" : "Prevista"}
+      />
 
       <ExpenseDetailRow
         icon="cash-outline"
@@ -220,13 +231,15 @@ function RecurringIncomeDetails({ income }: { income: IncomeDetail }) {
 }
 
 function OneOffIncomeDetails({ income }: { income: IncomeDetail }) {
-  const status = getIncomeStatus(income);
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
 
   return (
     <View style={styles.detailCard}>
       <ExpenseDetailRow
         icon="calendar-outline"
-        label="Recebimento previsto"
+        label="Recebimento"
         value={formatDate(income.expectedDate)}
       />
 
@@ -238,7 +251,11 @@ function OneOffIncomeDetails({ income }: { income: IncomeDetail }) {
 
       <ExpenseDetailRow icon="document-text-outline" label="Tipo" value="Pontual" />
 
-      <ExpenseDetailRow icon={status.icon} label="Status" value={status.label} />
+      <ExpenseDetailRow
+        icon={income.receivedDate ? "checkmark-circle-outline" : "time-outline"}
+        label="Status"
+        value={income.receivedDate ? "Recebida" : "Prevista"}
+      />
 
       <ExpenseDetailRow
         icon="cash-outline"
@@ -248,43 +265,6 @@ function OneOffIncomeDetails({ income }: { income: IncomeDetail }) {
       />
     </View>
   );
-}
-
-function getIncomeStatus(income: IncomeDetail): IncomeStatus {
-  if (income.receivedDate !== null) {
-    return {
-      label: "Recebida",
-      icon: "checkmark-circle-outline"
-    };
-  }
-
-  const expectedDate = income.expectedDate.slice(0, 10);
-
-  const today = getTodayDateKey();
-
-  if (expectedDate < today) {
-    return {
-      label: "Atrasada",
-      icon: "alert-circle-outline"
-    };
-  }
-
-  return {
-    label: "A receber",
-    icon: "time-outline"
-  };
-}
-
-function getTodayDateKey(): string {
-  const now = new Date();
-
-  const year = now.getFullYear();
-
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-
-  const day = String(now.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
 }
 
 function formatDate(value: string): string {
@@ -311,130 +291,129 @@ function formatFrequency(frequency: IncomeRecurrenceFrequency): string {
   }
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 36
-  },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 36
+    },
 
-  navigation: {
-    height: 46,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+    navigation: {
+      height: 46,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  navButton: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
+    navButton: {
+      flexDirection: "row",
+      alignItems: "center"
+    },
 
-  navButtonText: {
-    marginLeft: -3,
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    navButtonText: {
+      marginLeft: -3,
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  editText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    editText: {
+      fontSize: 17,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  hero: {
-    alignItems: "center",
-    marginTop: 22
-  },
+    hero: {
+      alignItems: "center",
+      marginTop: 22
+    },
 
-  icon: {
-    width: 78,
-    height: 78,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 22
-  },
+    icon: {
+      width: 78,
+      height: 78,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 22
+    },
 
-  recurringIcon: {
-    backgroundColor: "#FFF2DF"
-  },
+    recurringIcon: {
+      backgroundColor: theme.colors.warningSoft
+    },
 
-  oneOffIcon: {
-    backgroundColor: "#FFF5D9"
-  },
+    oneOffIcon: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  name: {
-    marginTop: 12,
-    fontSize: 27,
-    lineHeight: 32,
-    textAlign: "center",
-    fontWeight: "800",
-    letterSpacing: -0.8,
-    color: theme.colors.text
-  },
+    name: {
+      marginTop: 12,
+      fontSize: 27,
+      lineHeight: 32,
+      textAlign: "center",
+      fontWeight: "800",
+      letterSpacing: -0.8,
+      color: theme.colors.text
+    },
 
-  typeBadge: {
-    marginTop: 7,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-    backgroundColor: "#FFF2DF"
-  },
+    typeBadge: {
+      marginTop: 7,
+      borderRadius: 999,
+      paddingHorizontal: 18,
+      paddingVertical: 6,
+      backgroundColor: theme.colors.warningSoft
+    },
 
-  typeText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#A86400"
-  },
+    typeText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: theme.colors.warning
+    },
 
-  amount: {
-    marginTop: 17,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "800",
-    color: "#07143A"
-  },
+    amount: {
+      marginTop: 17,
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: "800",
+      color: theme.colors.success
+    },
 
-  receivedAmount: {
-    color: theme.colors.success
-  },
+    detailCard: {
+      overflow: "hidden",
+      marginTop: 24,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  detailCard: {
-    overflow: "hidden",
-    marginTop: 24,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.72)"
-  },
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24
+    },
 
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24
-  },
+    errorText: {
+      fontSize: 14,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  errorText: {
-    fontSize: 14,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
-
-  link: {
-    marginTop: 16,
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.primary
-  }
-});
+    link: {
+      marginTop: 16,
+      fontSize: 15,
+      fontWeight: "700",
+      color: theme.colors.primary
+    }
+  });
+}
