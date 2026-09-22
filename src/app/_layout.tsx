@@ -3,14 +3,23 @@ import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/authentication/auth.context";
-import { theme } from "@/theme/theme";
+import { AppThemeProvider, useAppTheme } from "@/theme/theme.context";
 
 function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  const { theme } = useAppTheme();
+
   if (isLoading) {
     return (
-      <View style={styles.loading}>
+      <View
+        style={[
+          styles.loading,
+          {
+            backgroundColor: theme.colors.backgroundTop
+          }
+        ]}
+      >
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -19,7 +28,10 @@ function RootNavigator() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: theme.colors.backgroundTop
+        }
       }}
     >
       <Stack.Protected guard={!isAuthenticated}>
@@ -35,14 +47,26 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function ThemedApplication() {
+  const { resolvedThemeMode } = useAppTheme();
+
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
+    <>
+      <StatusBar style={resolvedThemeMode === "dark" ? "light" : "dark"} />
 
       <AuthProvider>
         <RootNavigator />
       </AuthProvider>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AppThemeProvider>
+        <ThemedApplication />
+      </AppThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -51,7 +75,6 @@ const styles = StyleSheet.create({
   loading: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.backgroundTop
+    justifyContent: "center"
   }
 });

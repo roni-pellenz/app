@@ -1,15 +1,18 @@
 import * as SecureStore from "expo-secure-store";
+import type { ThemeMode } from "@/theme/theme";
 
 export type HomeMetricsLayout = "detailed" | "compact";
 
 export type AccountPreferences = {
   showUpcomingExpenses: boolean;
   homeMetricsLayout: HomeMetricsLayout;
+  themeMode: ThemeMode;
 };
 
 export const DEFAULT_ACCOUNT_PREFERENCES: AccountPreferences = {
   showUpcomingExpenses: true,
-  homeMetricsLayout: "detailed"
+  homeMetricsLayout: "detailed",
+  themeMode: "system"
 };
 
 const PREFERENCES_KEY = "finance.preferences.v2";
@@ -76,6 +79,15 @@ export async function saveHomeMetricsLayout(layout: HomeMetricsLayout): Promise<
   });
 }
 
+export async function saveThemeMode(themeMode: ThemeMode): Promise<void> {
+  const currentPreferences = await loadAccountPreferences();
+
+  await saveAccountPreferences({
+    ...currentPreferences,
+    themeMode
+  });
+}
+
 function parseAccountPreferences(value: unknown): AccountPreferences | null {
   if (typeof value !== "object" || value === null) {
     return null;
@@ -93,8 +105,23 @@ function parseAccountPreferences(value: unknown): AccountPreferences | null {
     return null;
   }
 
+  const storedThemeMode = preferences.themeMode;
+
+  if (
+    storedThemeMode !== undefined &&
+    storedThemeMode !== "system" &&
+    storedThemeMode !== "light" &&
+    storedThemeMode !== "dark"
+  ) {
+    return null;
+  }
+
   return {
     showUpcomingExpenses: preferences.showUpcomingExpenses,
-    homeMetricsLayout: storedLayout === "compact" ? "compact" : "detailed"
+
+    homeMetricsLayout: storedLayout === "compact" ? "compact" : "detailed",
+
+    themeMode:
+      storedThemeMode === "light" || storedThemeMode === "dark" ? storedThemeMode : "system"
   };
 }
