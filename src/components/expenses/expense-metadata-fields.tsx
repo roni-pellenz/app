@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import {
   EXPENSE_CATEGORY_OPTIONS,
@@ -11,7 +11,8 @@ import {
   formatExpenseNotification
 } from "@/expense/expense.metadata";
 import type { ExpenseCategory } from "@/expense/expense.types";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type SelectorMode = "category" | "notification" | null;
 
@@ -32,9 +33,18 @@ export function ExpenseMetadataFields({
   notificationDaysBefore,
   onNotificationDaysBeforeChange
 }: ExpenseMetadataFieldsProps) {
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [selectorMode, setSelectorMode] = useState<SelectorMode>(null);
 
   const categoryOption = category ? getExpenseCategoryOption(category) : undefined;
+
+  const categoryBackground =
+    resolvedThemeMode === "dark"
+      ? theme.colors.surfaceElevated
+      : (categoryOption?.backgroundColor ?? theme.colors.primarySoft);
 
   function closeSelector(): void {
     setSelectorMode(null);
@@ -56,7 +66,7 @@ export function ExpenseMetadataFields({
           style={[
             styles.fieldIcon,
             {
-              backgroundColor: categoryOption?.backgroundColor ?? theme.colors.primarySoft
+              backgroundColor: categoryBackground
             }
           ]}
         >
@@ -71,7 +81,7 @@ export function ExpenseMetadataFields({
           {category ? getExpenseCategoryLabel(category) : "Selecionar categoria"}
         </Text>
 
-        <Ionicons name="chevron-down" size={20} color="#526D94" />
+        <Ionicons name="chevron-down" size={20} color={theme.colors.textSecondary} />
       </Pressable>
 
       <Text style={styles.fieldLabel}>Observações</Text>
@@ -85,6 +95,8 @@ export function ExpenseMetadataFields({
           multiline
           maxLength={500}
           textAlignVertical="top"
+          keyboardAppearance={resolvedThemeMode}
+          selectionColor={theme.colors.primary}
           style={styles.notesInput}
         />
 
@@ -120,7 +132,7 @@ export function ExpenseMetadataFields({
 
         <Text style={styles.selectText}>{formatExpenseNotification(notificationDaysBefore)}</Text>
 
-        <Ionicons name="chevron-down" size={20} color="#526D94" />
+        <Ionicons name="chevron-down" size={20} color={theme.colors.textSecondary} />
       </Pressable>
 
       <Text style={styles.helper}>Define quando você deseja ser lembrado antes do vencimento.</Text>
@@ -158,6 +170,7 @@ export function ExpenseMetadataFields({
                   <Pressable
                     onPress={() => {
                       onCategoryChange(null);
+
                       closeSelector();
                     }}
                     style={({ pressed }) => [styles.optionRow, pressed && styles.optionPressed]}
@@ -173,33 +186,45 @@ export function ExpenseMetadataFields({
                     ) : null}
                   </Pressable>
 
-                  {EXPENSE_CATEGORY_OPTIONS.map((option) => (
-                    <Pressable
-                      key={option.value}
-                      onPress={() => {
-                        onCategoryChange(option.value);
-                        closeSelector();
-                      }}
-                      style={({ pressed }) => [styles.optionRow, pressed && styles.optionPressed]}
-                    >
-                      <View
-                        style={[
-                          styles.optionIcon,
-                          {
-                            backgroundColor: option.backgroundColor
-                          }
-                        ]}
+                  {EXPENSE_CATEGORY_OPTIONS.map((option) => {
+                    const optionBackground =
+                      resolvedThemeMode === "dark"
+                        ? theme.colors.surfaceElevated
+                        : option.backgroundColor;
+
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => {
+                          onCategoryChange(option.value);
+
+                          closeSelector();
+                        }}
+                        style={({ pressed }) => [styles.optionRow, pressed && styles.optionPressed]}
                       >
-                        <Ionicons name={option.icon} size={22} color={option.color} />
-                      </View>
+                        <View
+                          style={[
+                            styles.optionIcon,
+                            {
+                              backgroundColor: optionBackground
+                            }
+                          ]}
+                        >
+                          <Ionicons name={option.icon} size={22} color={option.color} />
+                        </View>
 
-                      <Text style={styles.optionText}>{option.label}</Text>
+                        <Text style={styles.optionText}>{option.label}</Text>
 
-                      {category === option.value ? (
-                        <Ionicons name="checkmark-circle" size={23} color={theme.colors.primary} />
-                      ) : null}
-                    </Pressable>
-                  ))}
+                        {category === option.value ? (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={23}
+                            color={theme.colors.primary}
+                          />
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
                 </>
               ) : (
                 EXPENSE_NOTIFICATION_OPTIONS.map((option) => {
@@ -210,6 +235,7 @@ export function ExpenseMetadataFields({
                       key={option.value === null ? "disabled" : String(option.value)}
                       onPress={() => {
                         onNotificationDaysBeforeChange(option.value);
+
                         closeSelector();
                       }}
                       style={({ pressed }) => [styles.optionRow, pressed && styles.optionPressed]}
@@ -252,166 +278,170 @@ export function ExpenseMetadataFields({
   );
 }
 
-const styles = StyleSheet.create({
-  sectionTitle: {
-    marginTop: 28,
-    marginBottom: 2,
-    fontSize: 18,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    sectionTitle: {
+      marginTop: 28,
+      marginBottom: 2,
+      fontSize: 18,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  fieldLabel: {
-    marginTop: 17,
-    marginBottom: 8,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#344B70"
-  },
+    fieldLabel: {
+      marginTop: 17,
+      marginBottom: 8,
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.textSecondary
+    },
 
-  inputBox: {
-    minHeight: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#C9D8EA",
-    borderRadius: 14,
-    paddingHorizontal: 13,
-    backgroundColor: "rgba(255,255,255,0.62)"
-  },
+    inputBox: {
+      minHeight: 50,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 13,
+      backgroundColor: theme.colors.surface
+    },
 
-  inputPressed: {
-    opacity: 0.7
-  },
+    inputPressed: {
+      opacity: 0.7
+    },
 
-  fieldIcon: {
-    width: 34,
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10
-  },
+    fieldIcon: {
+      width: 34,
+      height: 34,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 10
+    },
 
-  notificationEnabledIcon: {
-    backgroundColor: theme.colors.primarySoft
-  },
+    notificationEnabledIcon: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  notificationDisabledIcon: {
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    notificationDisabledIcon: {
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  selectText: {
-    flex: 1,
-    marginLeft: 11,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#07143A"
-  },
+    selectText: {
+      flex: 1,
+      marginLeft: 11,
+      fontSize: 15,
+      fontWeight: "600",
+      color: theme.colors.text
+    },
 
-  placeholderText: {
-    fontWeight: "500",
-    color: theme.colors.textMuted
-  },
+    placeholderText: {
+      fontWeight: "500",
+      color: theme.colors.textMuted
+    },
 
-  notesBox: {
-    minHeight: 116,
-    alignItems: "stretch",
-    paddingTop: 12,
-    paddingBottom: 8
-  },
+    notesBox: {
+      minHeight: 116,
+      alignItems: "stretch",
+      paddingTop: 12,
+      paddingBottom: 8
+    },
 
-  notesInput: {
-    minHeight: 76,
-    fontSize: 15,
-    lineHeight: 20,
-    color: "#07143A"
-  },
+    notesInput: {
+      minHeight: 76,
+      fontSize: 15,
+      lineHeight: 20,
+      color: theme.colors.text
+    },
 
-  characterCount: {
-    marginTop: 4,
-    fontSize: 10,
-    textAlign: "right",
-    color: theme.colors.textMuted
-  },
+    characterCount: {
+      marginTop: 4,
+      fontSize: 10,
+      textAlign: "right",
+      color: theme.colors.textMuted
+    },
 
-  helper: {
-    marginTop: 6,
-    fontSize: 11,
-    lineHeight: 15,
-    color: "#63799A"
-  },
+    helper: {
+      marginTop: 6,
+      fontSize: 11,
+      lineHeight: 15,
+      color: theme.colors.textMuted
+    },
 
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(7,20,58,0.24)"
-  },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: theme.colors.modalBackdrop
+    },
 
-  modalSheet: {
-    maxHeight: "78%",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 30,
-    backgroundColor: theme.colors.surface
-  },
+    modalSheet: {
+      maxHeight: "78%",
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 30,
+      backgroundColor: theme.colors.surface
+    },
 
-  modalHeader: {
-    height: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+    modalHeader: {
+      height: 56,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  modalTitle: {
-    fontSize: 19,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    modalTitle: {
+      fontSize: 19,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  closeButton: {
-    width: 38,
-    height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 19,
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    closeButton: {
+      width: 38,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 19,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  optionsContent: {
-    paddingBottom: 10
-  },
+    optionsContent: {
+      paddingBottom: 10
+    },
 
-  optionRow: {
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border
-  },
+    optionRow: {
+      minHeight: 58,
+      flexDirection: "row",
+      alignItems: "center",
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.border
+    },
 
-  optionPressed: {
-    opacity: 0.65
-  },
+    optionPressed: {
+      opacity: 0.65
+    },
 
-  optionIcon: {
-    width: 38,
-    height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 11
-  },
+    optionIcon: {
+      width: 38,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 11
+    },
 
-  noCategoryIcon: {
-    backgroundColor: theme.colors.surfaceMuted
-  },
+    noCategoryIcon: {
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  optionText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.text
-  }
-});
+    optionText: {
+      flex: 1,
+      marginLeft: 12,
+      fontSize: 15,
+      fontWeight: "600",
+      color: theme.colors.text
+    }
+  });
+}

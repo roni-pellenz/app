@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
@@ -11,11 +11,12 @@ import {
   updateIncome,
   updateRecurringIncome
 } from "@/income/income.api";
-import type { IncomeDetail, IncomeRecurrenceDetail } from "@/income/income.types";
+import type { IncomeDetail } from "@/income/income.types";
 import { getApiErrorMessage } from "@/lib/api";
 import { parseMonthYear } from "@/lib/date-input";
 import { formatCompetence, formatMoney } from "@/lib/format";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type FormMode = "create" | "edit";
 
@@ -38,6 +39,10 @@ export function IncomeFormScreen({
 }: IncomeFormScreenProps) {
   const { token } = useAuth();
 
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const initialRecurrence = initialIncome?.recurrence;
 
   const initialFrequency: IncomeFrequency = initialRecurrence ? "recurring" : "one-off";
@@ -46,15 +51,13 @@ export function IncomeFormScreen({
     ? formatIsoCompetenceForInput(initialRecurrence.endCompetence)
     : "";
 
-  const initialReceiptDay = getInitialReceiptDay(initialIncome, initialRecurrence);
-
   const [frequency, setFrequency] = useState<IncomeFrequency>(initialFrequency);
 
   const [name, setName] = useState(initialIncome?.name ?? "");
 
   const [amount, setAmount] = useState(initialIncome?.amount ?? 0);
 
-  const [receiptDay, setReceiptDay] = useState(initialReceiptDay);
+  const [receiptDay, setReceiptDay] = useState(getInitialReceiptDay(initialIncome));
 
   const [endCompetence, setEndCompetence] = useState(initialEndCompetence);
 
@@ -95,12 +98,6 @@ export function IncomeFormScreen({
 
     if (!trimmedName) {
       Alert.alert("Nome obrigatório", "Informe o nome da receita.");
-
-      return;
-    }
-
-    if (trimmedName.length > 150) {
-      Alert.alert("Nome muito longo", "O nome da receita deve ter no máximo 150 caracteres.");
 
       return;
     }
@@ -378,7 +375,7 @@ export function IncomeFormScreen({
             <Ionicons
               name={frequency === "recurring" ? "briefcase-outline" : "star-outline"}
               size={23}
-              color="#F28A00"
+              color={frequency === "recurring" ? theme.colors.warning : theme.colors.primary}
             />
 
             <TextInput
@@ -387,6 +384,8 @@ export function IncomeFormScreen({
               maxLength={150}
               placeholder="Nome da receita"
               placeholderTextColor={theme.colors.textMuted}
+              keyboardAppearance={resolvedThemeMode}
+              selectionColor={theme.colors.primary}
               style={[styles.input, styles.inputWithIcon]}
             />
           </View>
@@ -399,13 +398,15 @@ export function IncomeFormScreen({
               setAmount(parseMoneyInput(value));
             }}
             keyboardType="number-pad"
+            keyboardAppearance={resolvedThemeMode}
+            selectionColor={theme.colors.primary}
             style={[styles.inputBox, styles.moneyInput]}
           />
 
           <FieldLabel>Dia do recebimento</FieldLabel>
 
           <View style={styles.inputBox}>
-            <Ionicons name="calendar-outline" size={22} color="#526D94" />
+            <Ionicons name="calendar-outline" size={22} color={theme.colors.textSecondary} />
 
             <TextInput
               value={receiptDay}
@@ -413,16 +414,14 @@ export function IncomeFormScreen({
                 setReceiptDay(value.replace(/\D/g, "").slice(0, 2));
               }}
               keyboardType="number-pad"
+              keyboardAppearance={resolvedThemeMode}
+              selectionColor={theme.colors.primary}
               maxLength={2}
               placeholder="Dia"
               placeholderTextColor={theme.colors.textMuted}
               style={[styles.input, styles.inputWithIcon]}
             />
           </View>
-
-          <Text style={styles.helper}>
-            Em meses mais curtos, o dia será ajustado para o último dia do mês.
-          </Text>
 
           <FieldLabel>Competência</FieldLabel>
 
@@ -454,10 +453,18 @@ export function IncomeFormScreen({
 }
 
 function FieldLabel({ children }: { children: string }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return <Text style={styles.fieldLabel}>{children}</Text>;
 }
 
 function ReadOnlyBox({ text }: { text: string }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={[styles.inputBox, styles.lockedField]}>
       <Text style={styles.selectText}>{text}</Text>
@@ -465,26 +472,25 @@ function ReadOnlyBox({ text }: { text: string }) {
   );
 }
 
-function getInitialReceiptDay(
-  income: IncomeDetail | undefined,
-  recurrence: IncomeRecurrenceDetail | null | undefined
-): string {
+function getInitialReceiptDay(income?: IncomeDetail): string {
   if (!income) {
     return "";
   }
 
   const actualDay = Number(income.expectedDate.slice(8, 10));
 
-  if (!recurrence || !Number.isInteger(actualDay)) {
-    return Number.isInteger(actualDay) ? String(actualDay) : "";
+  const recurrenceDay = income.recurrence?.receiptDay;
+
+  if (!recurrenceDay) {
+    return String(actualDay);
   }
 
   const competence = income.competence.slice(0, 7);
 
-  const expectedRecurringDate = createDateForCompetence(competence, recurrence.receiptDay);
+  const normalOccurrenceDate = createDateForCompetence(competence, recurrenceDay);
 
-  if (expectedRecurringDate === income.expectedDate.slice(0, 10)) {
-    return String(recurrence.receiptDay);
+  if (normalOccurrenceDate === income.expectedDate.slice(0, 10)) {
+    return String(recurrenceDay);
   }
 
   return String(actualDay);
@@ -522,138 +528,144 @@ function formatIsoCompetenceForInput(value: string): string {
   return `${month}/${year}`;
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8
-  },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 8
+    },
 
-  header: {
-    height: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+    header: {
+      height: 52,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  headerAction: {
-    minWidth: 62,
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    headerAction: {
+      minWidth: 62,
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  headerActionRight: {
-    textAlign: "right"
-  },
+    headerActionRight: {
+      textAlign: "right"
+    },
 
-  headerActionDisabled: {
-    opacity: 0.45
-  },
+    headerActionDisabled: {
+      opacity: 0.45
+    },
 
-  segmented: {
-    height: 52,
-    flexDirection: "row",
-    marginTop: 14,
-    marginBottom: 26,
-    overflow: "hidden",
-    borderRadius: 15,
-    backgroundColor: "#F0F4FA"
-  },
+    segmented: {
+      height: 52,
+      flexDirection: "row",
+      marginTop: 14,
+      marginBottom: 26,
+      overflow: "hidden",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 15,
+      padding: 4,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  segment: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    segment: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12
+    },
 
-  segmentSelected: {
-    backgroundColor: theme.colors.primarySoft
-  },
+    segmentSelected: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  segmentDisabled: {
-    opacity: 0.55
-  },
+    segmentDisabled: {
+      opacity: 0.55
+    },
 
-  segmentText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#526D94"
-  },
+    segmentText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.colors.textSecondary
+    },
 
-  segmentTextSelected: {
-    color: theme.colors.primary
-  },
+    segmentTextSelected: {
+      color: theme.colors.primary
+    },
 
-  fieldLabel: {
-    marginTop: 17,
-    marginBottom: 8,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#344B70"
-  },
+    fieldLabel: {
+      marginTop: 17,
+      marginBottom: 8,
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.textSecondary
+    },
 
-  inputBox: {
-    minHeight: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#C9D8EA",
-    borderRadius: 14,
-    paddingHorizontal: 15,
-    backgroundColor: "rgba(255,255,255,0.62)"
-  },
+    inputBox: {
+      minHeight: 50,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 15,
+      backgroundColor: theme.colors.surface
+    },
 
-  lockedField: {
-    backgroundColor: "rgba(244,247,251,0.8)"
-  },
+    lockedField: {
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  input: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 16,
-    color: "#07143A"
-  },
+    input: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 16,
+      color: theme.colors.text
+    },
 
-  inputWithIcon: {
-    marginLeft: 12
-  },
+    inputWithIcon: {
+      marginLeft: 12
+    },
 
-  moneyInput: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#07143A"
-  },
+    moneyInput: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  selectText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#07143A"
-  },
+    selectText: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: "600",
+      color: theme.colors.text
+    },
 
-  helper: {
-    marginTop: 6,
-    fontSize: 11,
-    lineHeight: 15,
-    color: "#63799A"
-  },
+    helper: {
+      marginTop: 6,
+      fontSize: 11,
+      lineHeight: 15,
+      color: theme.colors.textMuted
+    },
 
-  bottomSpacer: {
-    height: 44
-  }
-});
+    bottomSpacer: {
+      height: 44
+    }
+  });
+}

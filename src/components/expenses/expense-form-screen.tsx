@@ -19,7 +19,8 @@ import type { ExpenseCategory, ExpenseDetail } from "@/expense/expense.types";
 import { getApiErrorMessage } from "@/lib/api";
 import { parseBrazilianDate, parseMonthYear } from "@/lib/date-input";
 import { formatMoney } from "@/lib/format";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type FormMode = "create" | "edit";
 
@@ -49,6 +50,10 @@ export function ExpenseFormScreen({
   onSaved
 }: ExpenseFormScreenProps) {
   const { token } = useAuth();
+
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const initialPlan = initialExpense?.installmentPlan;
 
@@ -84,15 +89,9 @@ export function ExpenseFormScreen({
       : (initialExpense?.notificationDaysBefore ?? null)
   );
 
-  const [dueDay, setDueDay] = useState(
-    initialExpense ? String(Number(initialExpense.dueDate.slice(8, 10))) : ""
-  );
+  const [dueDay, setDueDay] = useState(getInitialDueDay(initialExpense));
 
-  const [paymentDay, setPaymentDay] = useState(
-    initialExpense?.plannedPaymentDate
-      ? String(Number(initialExpense.plannedPaymentDate.slice(8, 10)))
-      : ""
-  );
+  const [paymentDay, setPaymentDay] = useState(getInitialPaymentDay(initialExpense));
 
   const [endCompetence, setEndCompetence] = useState(initialEndCompetence);
 
@@ -208,9 +207,11 @@ export function ExpenseFormScreen({
       ...(category && {
         category
       }),
+
       ...(trimmedNotes && {
         notes: trimmedNotes
       }),
+
       ...(notificationDaysBefore !== null && {
         notificationDaysBefore
       })
@@ -298,6 +299,16 @@ export function ExpenseFormScreen({
 
       if (endCompetence.trim() && !parsedEnd) {
         Alert.alert("Competência inválida", "Selecione uma competência final válida.");
+
+        return;
+      }
+
+      const referenceCompetence = initialExpense
+        ? initialExpense.competence.slice(0, 7)
+        : competence;
+
+      if (parsedEnd && parsedEnd < referenceCompetence) {
+        Alert.alert("Competência inválida", "A competência final não pode ser anterior à despesa.");
 
         return;
       }
@@ -580,8 +591,11 @@ export function ExpenseFormScreen({
             <TextInput
               value={name}
               onChangeText={setName}
+              maxLength={150}
               placeholder="Nome da despesa"
               placeholderTextColor={theme.colors.textMuted}
+              keyboardAppearance={resolvedThemeMode}
+              selectionColor={theme.colors.primary}
               style={[styles.input, styles.inputWithIcon]}
             />
           </View>
@@ -594,6 +608,8 @@ export function ExpenseFormScreen({
               setAmount(parseMoneyInput(value));
             }}
             keyboardType="number-pad"
+            keyboardAppearance={resolvedThemeMode}
+            selectionColor={theme.colors.primary}
             style={[styles.inputBox, styles.moneyInput]}
           />
 
@@ -604,7 +620,11 @@ export function ExpenseFormScreen({
                   <FieldLabel>Vencimento</FieldLabel>
 
                   <View style={styles.inputBox}>
-                    <Ionicons name="calendar-outline" size={22} color="#526D94" />
+                    <Ionicons
+                      name="calendar-outline"
+                      size={22}
+                      color={theme.colors.textSecondary}
+                    />
 
                     <TextInput
                       value={dueDay}
@@ -612,6 +632,8 @@ export function ExpenseFormScreen({
                         setDueDay(value.replace(/\D/g, "").slice(0, 2));
                       }}
                       keyboardType="number-pad"
+                      keyboardAppearance={resolvedThemeMode}
+                      selectionColor={theme.colors.primary}
                       maxLength={2}
                       placeholder="Dia"
                       placeholderTextColor={theme.colors.textMuted}
@@ -624,7 +646,11 @@ export function ExpenseFormScreen({
                   <FieldLabel>Pagamento (opcional)</FieldLabel>
 
                   <View style={styles.inputBox}>
-                    <Ionicons name="calendar-outline" size={22} color="#526D94" />
+                    <Ionicons
+                      name="calendar-outline"
+                      size={22}
+                      color={theme.colors.textSecondary}
+                    />
 
                     <TextInput
                       value={paymentDay}
@@ -632,6 +658,8 @@ export function ExpenseFormScreen({
                         setPaymentDay(value.replace(/\D/g, "").slice(0, 2));
                       }}
                       keyboardType="number-pad"
+                      keyboardAppearance={resolvedThemeMode}
+                      selectionColor={theme.colors.primary}
                       maxLength={2}
                       placeholder="Dia"
                       placeholderTextColor={theme.colors.textMuted}
@@ -661,7 +689,7 @@ export function ExpenseFormScreen({
                     </Text>
 
                     {mode === "create" ? (
-                      <Ionicons name="chevron-down" size={20} color="#526D94" />
+                      <Ionicons name="chevron-down" size={20} color={theme.colors.textSecondary} />
                     ) : null}
                   </Pressable>
                 </View>
@@ -692,6 +720,8 @@ export function ExpenseFormScreen({
                       setInstallments(value.replace(/\D/g, "").slice(0, 3));
                     }}
                     keyboardType="number-pad"
+                    keyboardAppearance={resolvedThemeMode}
+                    selectionColor={theme.colors.primary}
                     style={[styles.inputBox, styles.plainInput]}
                   />
                 </View>
@@ -754,15 +784,71 @@ export function ExpenseFormScreen({
 }
 
 function FieldLabel({ children }: { children: string }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return <Text style={styles.fieldLabel}>{children}</Text>;
 }
 
 function ReadOnlyBox({ text }: { text: string }) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
-    <View style={styles.inputBox}>
+    <View style={[styles.inputBox, styles.lockedField]}>
       <Text style={styles.selectText}>{text}</Text>
     </View>
   );
+}
+
+function getInitialDueDay(expense?: ExpenseDetail): string {
+  if (!expense) {
+    return "";
+  }
+
+  const actualDay = Number(expense.dueDate.slice(8, 10));
+
+  const recurrenceDay = expense.recurrence?.dueDay;
+
+  if (!recurrenceDay) {
+    return String(actualDay);
+  }
+
+  const competence = expense.competence.slice(0, 7);
+
+  const normalOccurrenceDate = createDateForCompetence(competence, recurrenceDay);
+
+  if (normalOccurrenceDate === expense.dueDate.slice(0, 10)) {
+    return String(recurrenceDay);
+  }
+
+  return String(actualDay);
+}
+
+function getInitialPaymentDay(expense?: ExpenseDetail): string {
+  if (!expense?.plannedPaymentDate) {
+    return "";
+  }
+
+  const actualDay = Number(expense.plannedPaymentDate.slice(8, 10));
+
+  const recurrenceDay = expense.recurrence?.plannedPaymentDay;
+
+  if (!recurrenceDay) {
+    return String(actualDay);
+  }
+
+  const competence = expense.competence.slice(0, 7);
+
+  const normalPaymentDate = createDateForCompetence(competence, recurrenceDay);
+
+  if (normalPaymentDate === expense.plannedPaymentDate.slice(0, 10)) {
+    return String(recurrenceDay);
+  }
+
+  return String(actualDay);
 }
 
 function parseMoneyInput(value: string): number {
@@ -809,160 +895,166 @@ function formatIsoCompetenceForInput(value: string): string {
   return `${month}/${year}`;
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 8
-  },
+    content: {
+      paddingHorizontal: 20,
+      paddingTop: 8
+    },
 
-  header: {
-    height: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+    header: {
+      height: 52,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  headerAction: {
-    minWidth: 62,
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.primary
-  },
+    headerAction: {
+      minWidth: 62,
+      fontSize: 16,
+      fontWeight: "600",
+      color: theme.colors.primary
+    },
 
-  headerActionRight: {
-    textAlign: "right"
-  },
+    headerActionRight: {
+      textAlign: "right"
+    },
 
-  headerActionDisabled: {
-    opacity: 0.45
-  },
+    headerActionDisabled: {
+      opacity: 0.45
+    },
 
-  segmented: {
-    height: 52,
-    flexDirection: "row",
-    marginTop: 14,
-    marginBottom: 26,
-    overflow: "hidden",
-    borderRadius: 15,
-    backgroundColor: "#F0F4FA"
-  },
+    segmented: {
+      height: 52,
+      flexDirection: "row",
+      marginTop: 14,
+      marginBottom: 26,
+      overflow: "hidden",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 15,
+      padding: 4,
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  segment: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    segment: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12
+    },
 
-  segmentSelected: {
-    backgroundColor: theme.colors.primarySoft
-  },
+    segmentSelected: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  segmentDisabled: {
-    opacity: 0.55
-  },
+    segmentDisabled: {
+      opacity: 0.55
+    },
 
-  segmentText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#526D94"
-  },
+    segmentText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.colors.textSecondary
+    },
 
-  segmentTextSelected: {
-    color: theme.colors.primary
-  },
+    segmentTextSelected: {
+      color: theme.colors.primary
+    },
 
-  fieldLabel: {
-    marginTop: 17,
-    marginBottom: 8,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#344B70"
-  },
+    fieldLabel: {
+      marginTop: 17,
+      marginBottom: 8,
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.colors.textSecondary
+    },
 
-  inputBox: {
-    minHeight: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#C9D8EA",
-    borderRadius: 14,
-    paddingHorizontal: 15,
-    backgroundColor: "rgba(255,255,255,0.62)"
-  },
+    inputBox: {
+      minHeight: 50,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 15,
+      backgroundColor: theme.colors.surface
+    },
 
-  lockedField: {
-    backgroundColor: "rgba(244,247,251,0.8)"
-  },
+    lockedField: {
+      backgroundColor: theme.colors.surfaceMuted
+    },
 
-  input: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 16,
-    color: "#07143A"
-  },
+    input: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 16,
+      color: theme.colors.text
+    },
 
-  inputWithIcon: {
-    marginLeft: 12
-  },
+    inputWithIcon: {
+      marginLeft: 12
+    },
 
-  moneyInput: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#07143A"
-  },
+    moneyInput: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: theme.colors.text
+    },
 
-  plainInput: {
-    fontSize: 16,
-    color: "#07143A"
-  },
+    plainInput: {
+      fontSize: 16,
+      color: theme.colors.text
+    },
 
-  selectText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#07143A"
-  },
+    selectText: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: "600",
+      color: theme.colors.text
+    },
 
-  twoColumns: {
-    flexDirection: "row",
-    gap: 12
-  },
+    twoColumns: {
+      flexDirection: "row",
+      gap: 12
+    },
 
-  column: {
-    flex: 1,
-    minWidth: 0
-  },
+    column: {
+      flex: 1,
+      minWidth: 0
+    },
 
-  helper: {
-    marginTop: 6,
-    fontSize: 11,
-    lineHeight: 15,
-    color: "#63799A"
-  },
+    helper: {
+      marginTop: 6,
+      fontSize: 11,
+      lineHeight: 15,
+      color: theme.colors.textMuted
+    },
 
-  installmentHelper: {
-    marginTop: 6,
-    fontSize: 11,
-    lineHeight: 15,
-    color: "#63799A"
-  },
+    installmentHelper: {
+      marginTop: 6,
+      fontSize: 11,
+      lineHeight: 15,
+      color: theme.colors.textMuted
+    },
 
-  bottomSpacer: {
-    height: 44
-  }
-});
+    bottomSpacer: {
+      height: 44
+    }
+  });
+}
