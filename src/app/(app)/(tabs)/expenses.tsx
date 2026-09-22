@@ -29,7 +29,8 @@ import type { Expense, ExpenseFilter } from "@/expense/expense.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { getCurrentCompetence, shiftCompetence } from "@/lib/format";
 import { syncExpenseNotifications } from "@/notification/notification.service";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type ScreenState = "loading" | "ready" | "error";
 
@@ -47,6 +48,10 @@ const UNDO_SNACKBAR_RIGHT = 100;
 
 export default function ExpensesScreen() {
   const { token, signOut } = useAuth();
+
+  const { theme } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const insets = useSafeAreaInsets();
 
@@ -78,6 +83,7 @@ export default function ExpensesScreen() {
     const requestId = ++requestIdRef.current;
 
     setState("loading");
+
     setErrorMessage(null);
 
     try {
@@ -357,16 +363,16 @@ export default function ExpensesScreen() {
       }
     };
 
-    showUndoFeedback(
+    const message =
       scope === "future"
         ? "Despesa e próximas removidas."
         : expense.installmentPlanId
           ? "Parcela removida."
-          : "Despesa removida.",
-      async () => {
-        restoreExpense(expense);
-      }
-    );
+          : "Despesa removida.";
+
+    showUndoFeedback(message, async () => {
+      restoreExpense(expense);
+    });
   }
 
   async function changeCompetence(offset: number): Promise<void> {
@@ -485,80 +491,84 @@ function getTodayApiDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundTop
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: theme.colors.backgroundTop
+    },
 
-  gradient: {
-    flex: 1
-  },
+    gradient: {
+      flex: 1
+    },
 
-  root: {
-    flex: 1
-  },
+    root: {
+      flex: 1
+    },
 
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 155
-  },
+    content: {
+      flexGrow: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 155
+    },
 
-  monthContainer: {
-    marginTop: 20,
-    marginBottom: 16
-  },
+    monthContainer: {
+      marginTop: 20,
+      marginBottom: 16
+    },
 
-  listContainer: {
-    marginTop: 15
-  },
+    listContainer: {
+      marginTop: 15
+    },
 
-  loadingContainer: {
-    minHeight: 300,
-    alignItems: "center",
-    justifyContent: "center"
-  },
+    loadingContainer: {
+      minHeight: 300,
+      alignItems: "center",
+      justifyContent: "center"
+    },
 
-  errorCard: {
-    alignItems: "center",
-    marginTop: 15,
-    borderRadius: 22,
-    padding: 24,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    errorCard: {
+      alignItems: "center",
+      marginTop: 15,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 22,
+      padding: 24,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  errorTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: theme.colors.text
-  },
+    errorTitle: {
+      fontSize: 16,
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  errorText: {
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: "center",
-    color: theme.colors.textSecondary
-  },
+    errorText: {
+      marginTop: 6,
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: "center",
+      color: theme.colors.textSecondary
+    },
 
-  retryButton: {
-    marginTop: 16,
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    backgroundColor: theme.colors.primary
-  },
+    retryButton: {
+      marginTop: 16,
+      borderRadius: 16,
+      paddingHorizontal: 18,
+      paddingVertical: 11,
+      backgroundColor: theme.colors.primary
+    },
 
-  retryPressed: {
-    opacity: 0.75
-  },
+    retryPressed: {
+      opacity: 0.75
+    },
 
-  retryText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#FFFFFF"
-  }
-});
+    retryText: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: theme.colors.onPrimary
+    }
+  });
+}

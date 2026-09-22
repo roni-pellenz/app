@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 import { getExpenseAppearance } from "@/expense/expense.appearance";
 import type { Expense } from "@/expense/expense.types";
 import { formatMoney } from "@/lib/format";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type ExpenseRowProps = {
   expense: Expense;
@@ -22,25 +23,22 @@ type ExpenseStatus = {
 type OpenSide = -1 | 0 | 1;
 
 const ACTION_WIDTH = 92;
-
 const SNAP_THRESHOLD = 42;
-
 const CLOSE_THRESHOLD = 18;
-
 const OPEN_VELOCITY_THRESHOLD = 0.35;
-
 const CLOSE_VELOCITY_THRESHOLD = 0.2;
-
 const FULL_SWIPE_RATIO = 0.72;
-
 const FULL_SWIPE_MIN_DISTANCE = ACTION_WIDTH + 70;
-
 const FULL_SWIPE_ANIMATION_DURATION = 110;
 
 export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: ExpenseRowProps) {
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const appearance = getExpenseAppearance(expense.name, expense.category);
 
-  const status = getExpenseStatus(expense);
+  const status = getExpenseStatus(expense, theme);
 
   const translateX = useRef(new Animated.Value(0)).current;
 
@@ -279,6 +277,9 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
 
   const isPaid = expense.paidDate !== null;
 
+  const iconBackground =
+    resolvedThemeMode === "dark" ? theme.colors.surfaceElevated : appearance.backgroundColor;
+
   return (
     <View
       style={styles.swipeContainer}
@@ -321,7 +322,11 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
           onPress={handlePayment}
           style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
         >
-          <Ionicons name={isPaid ? "arrow-undo" : "checkmark"} size={28} color="#FFFFFF" />
+          <Ionicons
+            name={isPaid ? "arrow-undo" : "checkmark"}
+            size={28}
+            color={theme.colors.onPrimary}
+          />
 
           <Text style={styles.actionText} numberOfLines={1}>
             {isPaid ? "Desmarcar" : "Pagar"}
@@ -342,7 +347,7 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
           onPress={handleDelete}
           style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
         >
-          <Ionicons name="trash-outline" size={26} color="#FFFFFF" />
+          <Ionicons name="trash-outline" size={26} color={theme.colors.onPrimary} />
 
           <Text style={styles.actionText}>Excluir</Text>
         </Pressable>
@@ -369,7 +374,7 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
             style={[
               styles.iconContainer,
               {
-                backgroundColor: appearance.backgroundColor
+                backgroundColor: iconBackground
               }
             ]}
           >
@@ -419,7 +424,12 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
                 {formatMoney(expense.amount)}
               </Text>
 
-              <Ionicons name="chevron-forward" size={20} color="#52719B" style={styles.chevron} />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={theme.colors.textSecondary}
+                style={styles.chevron}
+              />
             </View>
           </View>
         </Pressable>
@@ -428,7 +438,7 @@ export function ExpenseRow({ expense, onPress, onTogglePayment, onDelete }: Expe
   );
 }
 
-function getExpenseStatus(expense: Expense): ExpenseStatus {
+function getExpenseStatus(expense: Expense, theme: AppTheme): ExpenseStatus {
   if (expense.paidDate !== null) {
     return {
       label: "Paga",
@@ -505,161 +515,163 @@ function formatShortCompetence(value: string): string {
   return `${months[monthNumber - 1]}/${year}`;
 }
 
-const styles = StyleSheet.create({
-  swipeContainer: {
-    position: "relative",
-    overflow: "hidden",
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    swipeContainer: {
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  fullActionBackground: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0
-  },
+    fullActionBackground: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0
+    },
 
-  paymentBackground: {
-    backgroundColor: theme.colors.success
-  },
+    paymentBackground: {
+      backgroundColor: theme.colors.success
+    },
 
-  deleteBackground: {
-    backgroundColor: theme.colors.danger
-  },
+    deleteBackground: {
+      backgroundColor: theme.colors.danger
+    },
 
-  actionContainer: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    width: ACTION_WIDTH,
-    zIndex: 1
-  },
+    actionContainer: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      width: ACTION_WIDTH,
+      zIndex: 1
+    },
 
-  paymentAction: {
-    left: 0
-  },
+    paymentAction: {
+      left: 0
+    },
 
-  deleteAction: {
-    right: 0
-  },
+    deleteAction: {
+      right: 0
+    },
 
-  actionButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3
-  },
+    actionButton: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 3
+    },
 
-  actionPressed: {
-    opacity: 0.78
-  },
+    actionPressed: {
+      opacity: 0.78
+    },
 
-  actionText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#FFFFFF"
-  },
+    actionText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: theme.colors.onPrimary
+    },
 
-  animatedRow: {
-    zIndex: 2,
-    backgroundColor: theme.colors.surface
-  },
+    animatedRow: {
+      zIndex: 2,
+      backgroundColor: theme.colors.surface
+    },
 
-  row: {
-    minHeight: 118,
-    flexDirection: "row",
-    paddingLeft: 13,
-    backgroundColor: theme.colors.surface
-  },
+    row: {
+      minHeight: 118,
+      flexDirection: "row",
+      paddingLeft: 13,
+      backgroundColor: theme.colors.surface
+    },
 
-  pressed: {
-    opacity: 0.65
-  },
+    pressed: {
+      opacity: 0.65
+    },
 
-  iconContainer: {
-    width: 48,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-    borderRadius: 15
-  },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: "center",
+      borderRadius: 15
+    },
 
-  content: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 13,
-    paddingRight: 13,
-    paddingVertical: 12
-  },
+    content: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      marginLeft: 13,
+      paddingRight: 13,
+      paddingVertical: 12
+    },
 
-  textContent: {
-    flex: 1,
-    minWidth: 0,
-    paddingRight: 8
-  },
+    textContent: {
+      flex: 1,
+      minWidth: 0,
+      paddingRight: 8
+    },
 
-  name: {
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: theme.colors.text
-  },
+    name: {
+      fontSize: 15,
+      lineHeight: 19,
+      fontWeight: "700",
+      letterSpacing: -0.3,
+      color: theme.colors.text
+    },
 
-  statusBadge: {
-    alignSelf: "flex-start",
-    marginTop: 5,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3
-  },
+    statusBadge: {
+      alignSelf: "flex-start",
+      marginTop: 5,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 3
+    },
 
-  statusText: {
-    fontSize: 10,
-    lineHeight: 12,
-    fontWeight: "700"
-  },
+    statusText: {
+      fontSize: 10,
+      lineHeight: 12,
+      fontWeight: "700"
+    },
 
-  firstMeta: {
-    marginTop: 5,
-    fontSize: 12,
-    lineHeight: 16,
-    color: "#526D94"
-  },
+    firstMeta: {
+      marginTop: 5,
+      fontSize: 12,
+      lineHeight: 16,
+      color: theme.colors.textSecondary
+    },
 
-  meta: {
-    marginTop: 1,
-    fontSize: 12,
-    lineHeight: 16,
-    color: "#526D94"
-  },
+    meta: {
+      marginTop: 1,
+      fontSize: 12,
+      lineHeight: 16,
+      color: theme.colors.textSecondary
+    },
 
-  rightContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    maxWidth: 122
-  },
+    rightContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      maxWidth: 122
+    },
 
-  amount: {
-    flexShrink: 1,
-    fontSize: 15,
-    lineHeight: 19,
-    textAlign: "right",
-    fontWeight: "800",
-    color: "#07143A"
-  },
+    amount: {
+      flexShrink: 1,
+      fontSize: 15,
+      lineHeight: 19,
+      textAlign: "right",
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  paidAmount: {
-    color: theme.colors.success
-  },
+    paidAmount: {
+      color: theme.colors.success
+    },
 
-  chevron: {
-    marginLeft: 7
-  }
-});
+    chevron: {
+      marginLeft: 7
+    }
+  });
+}

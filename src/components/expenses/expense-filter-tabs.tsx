@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ExpenseFilter } from "@/expense/expense.types";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type ExpenseFilterTabsProps = {
   value: ExpenseFilter;
@@ -32,6 +33,10 @@ const filters: FilterDefinition[] = [
 ];
 
 export function ExpenseFilterTabs({ value, onChange }: ExpenseFilterTabsProps) {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.container}>
       {filters.map((filter) => {
@@ -64,39 +69,44 @@ export function ExpenseFilterTabs({ value, onChange }: ExpenseFilterTabsProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    gap: 8
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      gap: 8
+    },
 
-  item: {
-    flex: 1,
-    height: 38,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 19,
-    paddingHorizontal: 6,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+    item: {
+      flex: 1,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.border,
+      borderRadius: 19,
+      paddingHorizontal: 6,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  itemSelected: {
-    backgroundColor: theme.colors.primary
-  },
+    itemSelected: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary
+    },
 
-  itemPressed: {
-    opacity: 0.72
-  },
+    itemPressed: {
+      opacity: 0.72
+    },
 
-  label: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textSecondary
-  },
+    label: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: theme.colors.textSecondary
+    },
 
-  labelSelected: {
-    fontWeight: "700",
-    color: "#FFFFFF"
-  }
-});
+    labelSelected: {
+      fontWeight: "700",
+      color: theme.colors.onPrimary
+    }
+  });
+}

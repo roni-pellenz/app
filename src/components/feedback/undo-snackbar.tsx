@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, useWindowDimensions } from "react-native";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type UndoSnackbarProps = {
   message: string | null;
@@ -9,10 +11,13 @@ type UndoSnackbarProps = {
 };
 
 const ENTER_DURATION = 260;
-
 const EXIT_DURATION = 180;
 
 export function UndoSnackbar({ message, bottom, right = 20, onUndo }: UndoSnackbarProps) {
+  const { theme, resolvedThemeMode } = useAppTheme();
+
+  const styles = useMemo(() => createStyles(theme, resolvedThemeMode), [theme, resolvedThemeMode]);
+
   const { width } = useWindowDimensions();
 
   const [displayedMessage, setDisplayedMessage] = useState<string | null>(message);
@@ -47,6 +52,7 @@ export function UndoSnackbar({ message, bottom, right = 20, onUndo }: UndoSnackb
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true
         }),
+
         Animated.timing(opacity, {
           toValue: 1,
           duration: 180,
@@ -73,6 +79,7 @@ export function UndoSnackbar({ message, bottom, right = 20, onUndo }: UndoSnackb
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true
       }),
+
       Animated.timing(opacity, {
         toValue: 0,
         duration: EXIT_DURATION,
@@ -132,53 +139,57 @@ export function UndoSnackbar({ message, bottom, right = 20, onUndo }: UndoSnackb
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    left: 20,
-    zIndex: 50,
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 20,
-    paddingLeft: 17,
-    paddingRight: 8,
-    paddingVertical: 8,
-    backgroundColor: "#172033",
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 5
+function createStyles(theme: AppTheme, resolvedThemeMode: "light" | "dark") {
+  return StyleSheet.create({
+    container: {
+      position: "absolute",
+      left: 20,
+      zIndex: 50,
+      minHeight: 58,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: resolvedThemeMode === "dark" ? StyleSheet.hairlineWidth : 0,
+      borderColor: theme.colors.border,
+      borderRadius: 20,
+      paddingLeft: 17,
+      paddingRight: 8,
+      paddingVertical: 8,
+      backgroundColor: resolvedThemeMode === "dark" ? "#16263D" : "#172033",
+      shadowColor: "#000000",
+      shadowOffset: {
+        width: 0,
+        height: 5
+      },
+      shadowOpacity: resolvedThemeMode === "dark" ? 0.32 : 0.22,
+      shadowRadius: 12,
+      elevation: 12
     },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 12
-  },
 
-  message: {
-    flex: 1,
-    paddingRight: 8,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "600",
-    color: "#FFFFFF"
-  },
+    message: {
+      flex: 1,
+      paddingRight: 8,
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: "600",
+      color: "#FFFFFF"
+    },
 
-  undoButton: {
-    minHeight: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    paddingHorizontal: 10
-  },
+    undoButton: {
+      minHeight: 42,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12,
+      paddingHorizontal: 10
+    },
 
-  undoButtonPressed: {
-    backgroundColor: "rgba(255,255,255,0.10)"
-  },
+    undoButtonPressed: {
+      backgroundColor: "rgba(255,255,255,0.10)"
+    },
 
-  undoText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#78BFFF"
-  }
-});
+    undoText: {
+      fontSize: 13,
+      fontWeight: "800",
+      color: "#78BFFF"
+    }
+  });
+}

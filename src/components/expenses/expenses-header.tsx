@@ -1,8 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 export function ExpensesHeader() {
+  const { theme } = useAppTheme();
+
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
@@ -21,43 +26,45 @@ export function ExpensesHeader() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between"
+    },
 
-  textContainer: {
-    flex: 1,
-    minWidth: 0,
-    paddingRight: 12
-  },
+    textContainer: {
+      flex: 1,
+      minWidth: 0,
+      paddingRight: 12
+    },
 
-  title: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: "800",
-    letterSpacing: -1.1,
-    color: theme.colors.text
-  },
+    title: {
+      fontSize: 32,
+      lineHeight: 38,
+      fontWeight: "800",
+      letterSpacing: -1.1,
+      color: theme.colors.text
+    },
 
-  subtitle: {
-    marginTop: 3,
-    fontSize: 16,
-    lineHeight: 21,
-    color: "#49678F"
-  },
+    subtitle: {
+      marginTop: 3,
+      fontSize: 16,
+      lineHeight: 21,
+      color: theme.colors.subtitle
+    },
 
-  notification: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 22
-  },
+    notification: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 22
+    },
 
-  notificationPressed: {
-    backgroundColor: theme.colors.primarySoft
-  }
-});
+    notificationPressed: {
+      backgroundColor: theme.colors.primarySoft
+    }
+  });
+}
