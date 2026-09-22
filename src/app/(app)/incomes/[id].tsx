@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import type { ComponentProps } from "react";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,6 +12,13 @@ import type { IncomeDetail, IncomeRecurrenceFrequency } from "@/income/income.ty
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { formatCompetence, formatMoney } from "@/lib/format";
 import { theme } from "@/theme/theme";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+type IncomeStatus = {
+  label: string;
+  icon: IoniconName;
+};
 
 export default function IncomeDetailScreen() {
   const params = useLocalSearchParams<{
@@ -138,7 +146,9 @@ export default function IncomeDetailScreen() {
               </Text>
             </View>
 
-            <Text style={styles.amount}>{formatMoney(currentIncome.amount)}</Text>
+            <Text style={[styles.amount, currentIncome.receivedDate && styles.receivedAmount]}>
+              {formatMoney(currentIncome.amount)}
+            </Text>
           </View>
 
           {currentIncome.recurrence ? (
@@ -159,12 +169,20 @@ function RecurringIncomeDetails({ income }: { income: IncomeDetail }) {
     return null;
   }
 
+  const status = getIncomeStatus(income);
+
   return (
     <View style={styles.detailCard}>
       <ExpenseDetailRow
         icon="calendar-outline"
-        label="Recebimento"
-        value={`Dia ${formatDayFromDate(income.expectedDate)}`}
+        label="Recebimento previsto"
+        value={formatDate(income.expectedDate)}
+      />
+
+      <ExpenseDetailRow
+        icon="repeat-outline"
+        label="Dia da recorrência"
+        value={`Dia ${recurrence.receiptDay}`}
       />
 
       <ExpenseDetailRow
@@ -189,11 +207,7 @@ function RecurringIncomeDetails({ income }: { income: IncomeDetail }) {
         }
       />
 
-      <ExpenseDetailRow
-        icon={income.receivedDate ? "checkmark-circle-outline" : "time-outline"}
-        label="Status"
-        value={income.receivedDate ? "Recebida" : "Prevista"}
-      />
+      <ExpenseDetailRow icon={status.icon} label="Status" value={status.label} />
 
       <ExpenseDetailRow
         icon="cash-outline"
@@ -206,11 +220,13 @@ function RecurringIncomeDetails({ income }: { income: IncomeDetail }) {
 }
 
 function OneOffIncomeDetails({ income }: { income: IncomeDetail }) {
+  const status = getIncomeStatus(income);
+
   return (
     <View style={styles.detailCard}>
       <ExpenseDetailRow
         icon="calendar-outline"
-        label="Recebimento"
+        label="Recebimento previsto"
         value={formatDate(income.expectedDate)}
       />
 
@@ -222,11 +238,7 @@ function OneOffIncomeDetails({ income }: { income: IncomeDetail }) {
 
       <ExpenseDetailRow icon="document-text-outline" label="Tipo" value="Pontual" />
 
-      <ExpenseDetailRow
-        icon={income.receivedDate ? "checkmark-circle-outline" : "time-outline"}
-        label="Status"
-        value={income.receivedDate ? "Recebida" : "Prevista"}
-      />
+      <ExpenseDetailRow icon={status.icon} label="Status" value={status.label} />
 
       <ExpenseDetailRow
         icon="cash-outline"
@@ -238,10 +250,41 @@ function OneOffIncomeDetails({ income }: { income: IncomeDetail }) {
   );
 }
 
-function formatDayFromDate(value: string): string {
-  const day = value.slice(8, 10);
+function getIncomeStatus(income: IncomeDetail): IncomeStatus {
+  if (income.receivedDate !== null) {
+    return {
+      label: "Recebida",
+      icon: "checkmark-circle-outline"
+    };
+  }
 
-  return day || "--";
+  const expectedDate = income.expectedDate.slice(0, 10);
+
+  const today = getTodayDateKey();
+
+  if (expectedDate < today) {
+    return {
+      label: "Atrasada",
+      icon: "alert-circle-outline"
+    };
+  }
+
+  return {
+    label: "A receber",
+    icon: "time-outline"
+  };
+}
+
+function getTodayDateKey(): string {
+  const now = new Date();
+
+  const year = now.getFullYear();
+
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(value: string): string {
@@ -359,6 +402,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     fontWeight: "800",
+    color: "#07143A"
+  },
+
+  receivedAmount: {
     color: theme.colors.success
   },
 

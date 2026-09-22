@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { HomeMetricsLayout } from "@/account/account-preferences.storage";
+import { getCurrentCompetence } from "@/lib/format";
 import type { MonthlyPlanning, PlanningExpense } from "@/planning/planning.types";
 import { theme } from "@/theme/theme";
 
@@ -38,7 +39,13 @@ export function HomeMetricsGrid({
     (expense) => expense.installmentNumber !== null
   ).length;
 
-  const upcomingCount = countUpcomingExpenses(planning.items.expenses);
+  const isCurrentCompetence = planning.competence.slice(0, 7) === getCurrentCompetence();
+
+  const shouldShowUpcomingExpenses = showUpcomingExpenses && isCurrentCompetence;
+
+  const upcomingCount = shouldShowUpcomingExpenses
+    ? countUpcomingExpenses(planning.items.expenses)
+    : 0;
 
   if (layout === "compact") {
     return (
@@ -71,10 +78,10 @@ export function HomeMetricsGrid({
             label="Parcelas"
             iconColor={theme.colors.primary}
             iconBackground={theme.colors.primarySoft}
-            showRightDivider={showUpcomingExpenses}
+            showRightDivider={shouldShowUpcomingExpenses}
           />
 
-          {showUpcomingExpenses ? (
+          {shouldShowUpcomingExpenses ? (
             <CompactMetric
               icon="star-outline"
               value={upcomingCount}
@@ -112,10 +119,10 @@ export function HomeMetricsGrid({
         label="Parcelas"
         iconColor={theme.colors.primary}
         iconBackground={theme.colors.primarySoft}
-        fullWidth={!showUpcomingExpenses}
+        fullWidth={!shouldShowUpcomingExpenses}
       />
 
-      {showUpcomingExpenses ? (
+      {shouldShowUpcomingExpenses ? (
         <DetailedMetricCard
           icon="star-outline"
           value={upcomingCount}

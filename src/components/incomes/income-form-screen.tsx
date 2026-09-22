@@ -11,7 +11,7 @@ import {
   updateIncome,
   updateRecurringIncome
 } from "@/income/income.api";
-import type { IncomeDetail } from "@/income/income.types";
+import type { IncomeDetail, IncomeRecurrenceDetail } from "@/income/income.types";
 import { getApiErrorMessage } from "@/lib/api";
 import { parseMonthYear } from "@/lib/date-input";
 import { formatCompetence, formatMoney } from "@/lib/format";
@@ -46,15 +46,15 @@ export function IncomeFormScreen({
     ? formatIsoCompetenceForInput(initialRecurrence.endCompetence)
     : "";
 
+  const initialReceiptDay = getInitialReceiptDay(initialIncome, initialRecurrence);
+
   const [frequency, setFrequency] = useState<IncomeFrequency>(initialFrequency);
 
   const [name, setName] = useState(initialIncome?.name ?? "");
 
   const [amount, setAmount] = useState(initialIncome?.amount ?? 0);
 
-  const [receiptDay, setReceiptDay] = useState(
-    initialIncome ? String(Number(initialIncome.expectedDate.slice(8, 10))) : ""
-  );
+  const [receiptDay, setReceiptDay] = useState(initialReceiptDay);
 
   const [endCompetence, setEndCompetence] = useState(initialEndCompetence);
 
@@ -95,6 +95,12 @@ export function IncomeFormScreen({
 
     if (!trimmedName) {
       Alert.alert("Nome obrigatório", "Informe o nome da receita.");
+
+      return;
+    }
+
+    if (trimmedName.length > 150) {
+      Alert.alert("Nome muito longo", "O nome da receita deve ter no máximo 150 caracteres.");
 
       return;
     }
@@ -378,6 +384,7 @@ export function IncomeFormScreen({
             <TextInput
               value={name}
               onChangeText={setName}
+              maxLength={150}
               placeholder="Nome da receita"
               placeholderTextColor={theme.colors.textMuted}
               style={[styles.input, styles.inputWithIcon]}
@@ -412,6 +419,10 @@ export function IncomeFormScreen({
               style={[styles.input, styles.inputWithIcon]}
             />
           </View>
+
+          <Text style={styles.helper}>
+            Em meses mais curtos, o dia será ajustado para o último dia do mês.
+          </Text>
 
           <FieldLabel>Competência</FieldLabel>
 
@@ -452,6 +463,31 @@ function ReadOnlyBox({ text }: { text: string }) {
       <Text style={styles.selectText}>{text}</Text>
     </View>
   );
+}
+
+function getInitialReceiptDay(
+  income: IncomeDetail | undefined,
+  recurrence: IncomeRecurrenceDetail | null | undefined
+): string {
+  if (!income) {
+    return "";
+  }
+
+  const actualDay = Number(income.expectedDate.slice(8, 10));
+
+  if (!recurrence || !Number.isInteger(actualDay)) {
+    return Number.isInteger(actualDay) ? String(actualDay) : "";
+  }
+
+  const competence = income.competence.slice(0, 7);
+
+  const expectedRecurringDate = createDateForCompetence(competence, recurrence.receiptDay);
+
+  if (expectedRecurringDate === income.expectedDate.slice(0, 10)) {
+    return String(recurrence.receiptDay);
+  }
+
+  return String(actualDay);
 }
 
 function parseMoneyInput(value: string): number {

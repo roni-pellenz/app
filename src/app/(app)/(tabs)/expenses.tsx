@@ -16,6 +16,7 @@ import { AddExpenseButton } from "@/components/expenses/add-expense-button";
 import { ExpenseFilterTabs } from "@/components/expenses/expense-filter-tabs";
 import { ExpenseListCard } from "@/components/expenses/expense-list-card";
 import { ExpensesHeader } from "@/components/expenses/expenses-header";
+import { UndoSnackbar } from "@/components/feedback/undo-snackbar";
 import { MonthSelector } from "@/components/home/month-selector";
 import {
   deleteExpense,
@@ -32,6 +33,18 @@ import { theme } from "@/theme/theme";
 
 type ScreenState = "loading" | "ready" | "error";
 
+type DeleteScope = "single" | "future";
+
+type PendingDelete = {
+  commit: () => Promise<void>;
+};
+
+const UNDO_DURATION_MS = 4000;
+
+const FLOATING_ACTION_BOTTOM_OFFSET = 73;
+
+const UNDO_SNACKBAR_RIGHT = 100;
+
 export default function ExpensesScreen() {
   const { token, signOut } = useAuth();
 
@@ -47,7 +60,15 @@ export default function ExpensesScreen() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [undoMessage, setUndoMessage] = useState<string | null>(null);
+
   const requestIdRef = useRef(0);
+
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const undoActionRef = useRef<(() => Promise<void>) | null>(null);
+
+  const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
   const loadExpenses = useCallback(async (): Promise<void> => {
     if (!token) {
@@ -121,13 +142,99 @@ export default function ExpensesScreen() {
     }
   }, [expenses, filter]);
 
+  function clearUndoTimer(): void {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+
+      undoTimerRef.current = null;
+    }
+  }
+
+  async function flushPendingDelete(): Promise<void> {
+    const pending = pendingDeleteRef.current;
+
+    pendingDeleteRef.current = null;
+
+    if (pending) {
+      await pending.commit();
+    }
+  }
+
+  async function prepareForNewUndoAction(): Promise<void> {
+    clearUndoTimer();
+
+    setUndoMessage(null);
+
+    undoActionRef.current = null;
+
+    await flushPendingDelete();
+  }
+
+  function showUndoFeedback(message: string, onUndo: () => Promise<void>): void {
+    clearUndoTimer();
+
+    setUndoMessage(message);
+
+    undoActionRef.current = onUndo;
+
+    undoTimerRef.current = setTimeout(() => {
+      undoTimerRef.current = null;
+
+      setUndoMessage(null);
+
+      undoActionRef.current = null;
+
+      const pending = pendingDeleteRef.current;
+
+      pendingDeleteRef.current = null;
+
+      if (pending) {
+        void pending.commit();
+      }
+    }, UNDO_DURATION_MS);
+  }
+
+  async function handleUndo(): Promise<void> {
+    clearUndoTimer();
+
+    const undoAction = undoActionRef.current;
+
+    undoActionRef.current = null;
+
+    pendingDeleteRef.current = null;
+
+    setUndoMessage(null);
+
+    if (undoAction) {
+      await undoAction();
+    }
+  }
+
+  function restoreExpense(expense: Expense): void {
+    setExpenses((current) => {
+      if (current.some((item) => item.id === expense.id)) {
+        return current;
+      }
+
+      return [...current, expense].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    });
+  }
+
   async function handleTogglePayment(expense: Expense): Promise<void> {
     if (!token) {
       return;
     }
 
+    await prepareForNewUndoAction();
+
+    const wasPaid = expense.paidDate !== null;
+
+    const originalPaidDate = expense.paidDate;
+
+    const originalPaidAmount = expense.paidAmount;
+
     try {
-      const updatedExpense = expense.paidDate
+      const updatedExpense = wasPaid
         ? await unpayExpense(token, expense.id)
         : await payExpense(token, expense.id, {
             paidDate: getTodayApiDate(),
@@ -139,6 +246,38 @@ export default function ExpensesScreen() {
       );
 
       void syncExpenseNotifications(token).catch(() => undefined);
+
+      showUndoFeedback(
+        wasPaid ? "Pagamento desmarcado." : "Despesa marcada como paga.",
+        async () => {
+          try {
+            const revertedExpense =
+              wasPaid && originalPaidDate
+                ? await payExpense(token, expense.id, {
+                    paidDate: originalPaidDate.slice(0, 10),
+                    paidAmount: originalPaidAmount ?? expense.amount
+                  })
+                : await unpayExpense(token, expense.id);
+
+            setExpenses((current) =>
+              current.map((item) => (item.id === revertedExpense.id ? revertedExpense : item))
+            );
+
+            void syncExpenseNotifications(token).catch(() => undefined);
+          } catch (error) {
+            if (error instanceof ApiError && error.status === 401) {
+              await signOut();
+
+              return;
+            }
+
+            Alert.alert(
+              "Não foi possível desfazer",
+              getApiErrorMessage(error, "Não foi possível restaurar o pagamento.")
+            );
+          }
+        }
+      );
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         await signOut();
@@ -160,14 +299,14 @@ export default function ExpensesScreen() {
           text: "Somente esta despesa",
           style: "destructive",
           onPress: () => {
-            void executeDelete(expense, "single");
+            void scheduleDelete(expense, "single");
           }
         },
         {
           text: "Esta e as próximas",
           style: "destructive",
           onPress: () => {
-            void executeDelete(expense, "future");
+            void scheduleDelete(expense, "future");
           }
         },
         {
@@ -179,70 +318,66 @@ export default function ExpensesScreen() {
       return;
     }
 
-    if (expense.installmentPlanId) {
-      Alert.alert(
-        "Excluir parcela",
-        "Esta ação excluirá somente a parcela selecionada. As demais parcelas serão mantidas.",
-        [
-          {
-            text: "Cancelar",
-            style: "cancel"
-          },
-          {
-            text: "Excluir",
-            style: "destructive",
-            onPress: () => {
-              void executeDelete(expense, "single");
-            }
-          }
-        ]
-      );
-
-      return;
-    }
-
-    Alert.alert("Excluir despesa", `Deseja excluir "${expense.name}"?`, [
-      {
-        text: "Cancelar",
-        style: "cancel"
-      },
-      {
-        text: "Excluir",
-        style: "destructive",
-        onPress: () => {
-          void executeDelete(expense, "single");
-        }
-      }
-    ]);
+    void scheduleDelete(expense, "single");
   }
 
-  async function executeDelete(expense: Expense, scope: "single" | "future"): Promise<void> {
+  async function scheduleDelete(expense: Expense, scope: DeleteScope): Promise<void> {
     if (!token) {
       return;
     }
 
-    try {
-      if (scope === "future") {
-        await deleteFutureExpenses(token, expense.id);
-      } else {
-        await deleteExpense(token, expense.id);
+    await prepareForNewUndoAction();
+
+    setExpenses((current) => current.filter((item) => item.id !== expense.id));
+
+    pendingDeleteRef.current = {
+      commit: async () => {
+        try {
+          if (scope === "future") {
+            await deleteFutureExpenses(token, expense.id);
+          } else {
+            await deleteExpense(token, expense.id);
+          }
+
+          void syncExpenseNotifications(token).catch(() => undefined);
+        } catch (error) {
+          restoreExpense(expense);
+
+          if (error instanceof ApiError && error.status === 401) {
+            await signOut();
+
+            return;
+          }
+
+          Alert.alert(
+            "Não foi possível excluir",
+            getApiErrorMessage(error, "A despesa foi restaurada.")
+          );
+        }
       }
+    };
 
-      setExpenses((current) => current.filter((item) => item.id !== expense.id));
-
-      void syncExpenseNotifications(token).catch(() => undefined);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        await signOut();
-
-        return;
+    showUndoFeedback(
+      scope === "future"
+        ? "Despesa e próximas removidas."
+        : expense.installmentPlanId
+          ? "Parcela removida."
+          : "Despesa removida.",
+      async () => {
+        restoreExpense(expense);
       }
+    );
+  }
 
-      Alert.alert("Não foi possível excluir", getApiErrorMessage(error, "Tente novamente."));
-    }
+  async function changeCompetence(offset: number): Promise<void> {
+    await prepareForNewUndoAction();
+
+    setCompetence((current) => shiftCompetence(current, offset));
   }
 
   const tabBarBottom = Math.max(insets.bottom - 14, 14);
+
+  const floatingActionBottom = tabBarBottom + FLOATING_ACTION_BOTTOM_OFFSET;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -258,10 +393,10 @@ export default function ExpensesScreen() {
               <MonthSelector
                 competence={competence}
                 onPrevious={() => {
-                  setCompetence((current) => shiftCompetence(current, -1));
+                  void changeCompetence(-1);
                 }}
                 onNext={() => {
-                  setCompetence((current) => shiftCompetence(current, 1));
+                  void changeCompetence(1);
                 }}
               />
             </View>
@@ -313,7 +448,7 @@ export default function ExpensesScreen() {
           </ScrollView>
 
           <AddExpenseButton
-            bottom={tabBarBottom + 73}
+            bottom={floatingActionBottom}
             onPress={() => {
               router.push({
                 pathname: "/expenses/new",
@@ -321,6 +456,15 @@ export default function ExpensesScreen() {
                   competence
                 }
               });
+            }}
+          />
+
+          <UndoSnackbar
+            message={undoMessage}
+            bottom={floatingActionBottom}
+            right={UNDO_SNACKBAR_RIGHT}
+            onUndo={() => {
+              void handleUndo();
             }}
           />
         </View>

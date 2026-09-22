@@ -191,7 +191,7 @@ export default function HomeScreen() {
                   layout={preferences.homeMetricsLayout}
                 />
 
-                <PlanningStatusCard />
+                <PlanningStatusCard planning={planning} />
               </View>
             )}
           </ScrollView>

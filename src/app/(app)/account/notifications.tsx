@@ -215,7 +215,7 @@ export default function NotificationsScreen() {
   const remindersAvailable = preferences.expenseRemindersEnabled && permissionGranted;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <LinearGradient
         colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
         style={styles.gradient}

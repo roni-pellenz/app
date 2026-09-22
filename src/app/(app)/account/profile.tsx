@@ -157,7 +157,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <LinearGradient
         colors={[theme.colors.backgroundTop, theme.colors.backgroundBottom]}
         style={styles.gradient}

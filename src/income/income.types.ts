@@ -58,3 +58,7 @@ export type UpdateRecurringIncomeInput = {
   receiptDay?: number;
   endCompetence?: string | null;
 };
+
+export type ReceiveIncomeInput = {
+  receivedDate: string;
+};

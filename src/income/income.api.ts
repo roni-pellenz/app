@@ -3,6 +3,7 @@ import type {
   CreateRecurringIncomeInput,
   Income,
   IncomeDetail,
+  ReceiveIncomeInput,
   UpdateIncomeInput,
   UpdateRecurringIncomeInput
 } from "@/income/income.types";
@@ -43,6 +44,25 @@ export function createRecurringIncome(
   });
 }
 
+export function receiveIncome(
+  token: string,
+  incomeId: string,
+  input: ReceiveIncomeInput
+): Promise<Income> {
+  return apiRequest<Income>(`/incomes/${incomeId}/receipt`, {
+    method: "PATCH",
+    token,
+    body: input
+  });
+}
+
+export function unreceiveIncome(token: string, incomeId: string): Promise<Income> {
+  return apiRequest<Income>(`/incomes/${incomeId}/receipt`, {
+    method: "DELETE",
+    token
+  });
+}
+
 export function updateIncome(
   token: string,
   incomeId: string,
@@ -64,5 +84,33 @@ export function updateRecurringIncome(
     method: "PATCH",
     token,
     body: input
+  });
+}
+
+export function deleteIncome(
+  token: string,
+  incomeId: string
+): Promise<{
+  success: true;
+}> {
+  return apiRequest<{
+    success: true;
+  }>(`/incomes/${incomeId}`, {
+    method: "DELETE",
+    token
+  });
+}
+
+export function deleteFutureIncomes(
+  token: string,
+  incomeId: string
+): Promise<{
+  success: true;
+}> {
+  return apiRequest<{
+    success: true;
+  }>(`/incomes/${incomeId}/future`, {
+    method: "DELETE",
+    token
   });
 }

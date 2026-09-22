@@ -1,20 +1,47 @@
 import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/authentication/auth.context";
+import { UndoSnackbar } from "@/components/feedback/undo-snackbar";
+import { MonthSelector } from "@/components/home/month-selector";
 import { AddIncomeButton } from "@/components/incomes/add-income-button";
 import { IncomeFilterTabs } from "@/components/incomes/income-filter-tabs";
 import { IncomeRow } from "@/components/incomes/income-row";
-import { MonthSelector } from "@/components/home/month-selector";
-import { getIncomes } from "@/income/income.api";
+import {
+  deleteFutureIncomes,
+  deleteIncome,
+  getIncomes,
+  receiveIncome,
+  unreceiveIncome
+} from "@/income/income.api";
 import type { Income, IncomeFilter } from "@/income/income.types";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { formatMoney, getCurrentCompetence, shiftCompetence } from "@/lib/format";
 import { theme } from "@/theme/theme";
 
 type ScreenState = "loading" | "ready" | "error";
+
+type DeleteScope = "single" | "future";
+
+type PendingDelete = {
+  commit: () => Promise<void>;
+};
+
+const UNDO_DURATION_MS = 4000;
+
+const FLOATING_ACTION_BOTTOM_OFFSET = 73;
+
+const UNDO_SNACKBAR_RIGHT = 100;
 
 export default function IncomesScreen() {
   const { token, signOut } = useAuth();
@@ -31,7 +58,15 @@ export default function IncomesScreen() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [undoMessage, setUndoMessage] = useState<string | null>(null);
+
   const requestIdRef = useRef(0);
+
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const undoActionRef = useRef<(() => Promise<void>) | null>(null);
+
+  const pendingDeleteRef = useRef<PendingDelete | null>(null);
 
   const loadIncomes = useCallback(async (): Promise<void> => {
     if (!token) {
@@ -51,6 +86,7 @@ export default function IncomesScreen() {
       }
 
       setIncomes(response);
+
       setState("ready");
     } catch (error) {
       if (requestId !== requestIdRef.current) {
@@ -94,7 +130,228 @@ export default function IncomesScreen() {
     [filteredIncomes]
   );
 
+  function clearUndoTimer(): void {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+
+      undoTimerRef.current = null;
+    }
+  }
+
+  async function flushPendingDelete(): Promise<void> {
+    const pending = pendingDeleteRef.current;
+
+    pendingDeleteRef.current = null;
+
+    if (pending) {
+      await pending.commit();
+    }
+  }
+
+  async function prepareForNewUndoAction(): Promise<void> {
+    clearUndoTimer();
+
+    setUndoMessage(null);
+
+    undoActionRef.current = null;
+
+    await flushPendingDelete();
+  }
+
+  function showUndoFeedback(message: string, onUndo: () => Promise<void>): void {
+    clearUndoTimer();
+
+    setUndoMessage(message);
+
+    undoActionRef.current = onUndo;
+
+    undoTimerRef.current = setTimeout(() => {
+      undoTimerRef.current = null;
+
+      setUndoMessage(null);
+
+      undoActionRef.current = null;
+
+      const pending = pendingDeleteRef.current;
+
+      pendingDeleteRef.current = null;
+
+      if (pending) {
+        void pending.commit();
+      }
+    }, UNDO_DURATION_MS);
+  }
+
+  async function handleUndo(): Promise<void> {
+    clearUndoTimer();
+
+    const undoAction = undoActionRef.current;
+
+    undoActionRef.current = null;
+
+    pendingDeleteRef.current = null;
+
+    setUndoMessage(null);
+
+    if (undoAction) {
+      await undoAction();
+    }
+  }
+
+  function restoreIncome(income: Income): void {
+    setIncomes((current) => {
+      if (current.some((item) => item.id === income.id)) {
+        return current;
+      }
+
+      return [...current, income].sort((a, b) => a.expectedDate.localeCompare(b.expectedDate));
+    });
+  }
+
+  async function handleToggleReceipt(income: Income): Promise<void> {
+    if (!token) {
+      return;
+    }
+
+    await prepareForNewUndoAction();
+
+    const wasReceived = income.receivedDate !== null;
+
+    const originalReceivedDate = income.receivedDate;
+
+    try {
+      const updatedIncome = wasReceived
+        ? await unreceiveIncome(token, income.id)
+        : await receiveIncome(token, income.id, {
+            receivedDate: getTodayApiDate()
+          });
+
+      setIncomes((current) =>
+        current.map((item) => (item.id === updatedIncome.id ? updatedIncome : item))
+      );
+
+      showUndoFeedback(
+        wasReceived ? "Recebimento desmarcado." : "Receita marcada como recebida.",
+        async () => {
+          try {
+            const revertedIncome =
+              wasReceived && originalReceivedDate
+                ? await receiveIncome(token, income.id, {
+                    receivedDate: originalReceivedDate.slice(0, 10)
+                  })
+                : await unreceiveIncome(token, income.id);
+
+            setIncomes((current) =>
+              current.map((item) => (item.id === revertedIncome.id ? revertedIncome : item))
+            );
+          } catch (error) {
+            if (error instanceof ApiError && error.status === 401) {
+              await signOut();
+
+              return;
+            }
+
+            Alert.alert(
+              "Não foi possível desfazer",
+              getApiErrorMessage(error, "Não foi possível restaurar o recebimento.")
+            );
+          }
+        }
+      );
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        await signOut();
+
+        return;
+      }
+
+      Alert.alert(
+        "Não foi possível atualizar",
+        getApiErrorMessage(error, "Não foi possível alterar o recebimento da receita.")
+      );
+    }
+  }
+
+  function handleDeleteRequest(income: Income): void {
+    if (income.recurrenceId) {
+      Alert.alert("Excluir receita recorrente", "Onde deseja aplicar a exclusão?", [
+        {
+          text: "Somente esta receita",
+          style: "destructive",
+          onPress: () => {
+            void scheduleDelete(income, "single");
+          }
+        },
+        {
+          text: "Esta e as próximas",
+          style: "destructive",
+          onPress: () => {
+            void scheduleDelete(income, "future");
+          }
+        },
+        {
+          text: "Cancelar",
+          style: "cancel"
+        }
+      ]);
+
+      return;
+    }
+
+    void scheduleDelete(income, "single");
+  }
+
+  async function scheduleDelete(income: Income, scope: DeleteScope): Promise<void> {
+    if (!token) {
+      return;
+    }
+
+    await prepareForNewUndoAction();
+
+    setIncomes((current) => current.filter((item) => item.id !== income.id));
+
+    pendingDeleteRef.current = {
+      commit: async () => {
+        try {
+          if (scope === "future") {
+            await deleteFutureIncomes(token, income.id);
+          } else {
+            await deleteIncome(token, income.id);
+          }
+        } catch (error) {
+          restoreIncome(income);
+
+          if (error instanceof ApiError && error.status === 401) {
+            await signOut();
+
+            return;
+          }
+
+          Alert.alert(
+            "Não foi possível excluir",
+            getApiErrorMessage(error, "A receita foi restaurada.")
+          );
+        }
+      }
+    };
+
+    showUndoFeedback(
+      scope === "future" ? "Receita e próximas removidas." : "Receita removida.",
+      async () => {
+        restoreIncome(income);
+      }
+    );
+  }
+
+  async function changeCompetence(offset: number): Promise<void> {
+    await prepareForNewUndoAction();
+
+    setCompetence((current) => shiftCompetence(current, offset));
+  }
+
   const tabBarBottom = Math.max(insets.bottom - 14, 14);
+
+  const floatingActionBottom = tabBarBottom + FLOATING_ACTION_BOTTOM_OFFSET;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -114,10 +371,10 @@ export default function IncomesScreen() {
               <MonthSelector
                 competence={competence}
                 onPrevious={() => {
-                  setCompetence((current) => shiftCompetence(current, -1));
+                  void changeCompetence(-1);
                 }}
                 onNext={() => {
-                  setCompetence((current) => shiftCompetence(current, 1));
+                  void changeCompetence(1);
                 }}
               />
             </View>
@@ -179,6 +436,12 @@ export default function IncomesScreen() {
                             }
                           });
                         }}
+                        onToggleReceipt={() => {
+                          void handleToggleReceipt(income);
+                        }}
+                        onDelete={() => {
+                          handleDeleteRequest(income);
+                        }}
                       />
                     ))}
                   </View>
@@ -188,7 +451,7 @@ export default function IncomesScreen() {
           </ScrollView>
 
           <AddIncomeButton
-            bottom={tabBarBottom + 73}
+            bottom={floatingActionBottom}
             onPress={() => {
               router.push({
                 pathname: "/incomes/new",
@@ -198,10 +461,31 @@ export default function IncomesScreen() {
               });
             }}
           />
+
+          <UndoSnackbar
+            message={undoMessage}
+            bottom={floatingActionBottom}
+            right={UNDO_SNACKBAR_RIGHT}
+            onUndo={() => {
+              void handleUndo();
+            }}
+          />
         </View>
       </LinearGradient>
     </SafeAreaView>
   );
+}
+
+function getTodayApiDate(): string {
+  const now = new Date();
+
+  const year = now.getFullYear();
+
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 const styles = StyleSheet.create({
