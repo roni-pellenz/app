@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 import type { Income } from "@/income/income.types";
 import { formatMoney } from "@/lib/format";
-import { theme } from "@/theme/theme";
+import type { AppTheme } from "@/theme/theme";
+import { useAppTheme } from "@/theme/theme.context";
 
 type IncomeRowProps = {
   income: Income;
@@ -37,9 +38,11 @@ const FULL_SWIPE_MIN_DISTANCE = ACTION_WIDTH + 70;
 const FULL_SWIPE_ANIMATION_DURATION = 110;
 
 export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: IncomeRowProps) {
-  const recurring = income.recurrenceId !== null;
+  const { theme } = useAppTheme();
 
-  const status = getIncomeStatus(income);
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const status = getIncomeStatus(income, theme);
 
   const translateX = useRef(new Animated.Value(0)).current;
 
@@ -58,6 +61,10 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
   onToggleReceiptRef.current = onToggleReceipt;
 
   onDeleteRef.current = onDelete;
+
+  const recurring = income.recurrenceId !== null;
+
+  const isReceived = income.receivedDate !== null;
 
   function getRowWidth(): number {
     return Math.max(rowWidthRef.current, ACTION_WIDTH * 3);
@@ -276,8 +283,6 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
     extrapolate: "clamp"
   });
 
-  const isReceived = income.receivedDate !== null;
-
   return (
     <View
       style={styles.swipeContainer}
@@ -320,7 +325,11 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
           onPress={handleReceipt}
           style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
         >
-          <Ionicons name={isReceived ? "arrow-undo" : "checkmark"} size={28} color="#FFFFFF" />
+          <Ionicons
+            name={isReceived ? "arrow-undo" : "checkmark"}
+            size={28}
+            color={theme.colors.onPrimary}
+          />
 
           <Text style={styles.actionText} numberOfLines={1}>
             {isReceived ? "Desmarcar" : "Receber"}
@@ -341,7 +350,7 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
           onPress={handleDelete}
           style={({ pressed }) => [styles.actionButton, pressed && styles.actionPressed]}
         >
-          <Ionicons name="trash-outline" size={26} color="#FFFFFF" />
+          <Ionicons name="trash-outline" size={26} color={theme.colors.onPrimary} />
 
           <Text style={styles.actionText}>Excluir</Text>
         </Pressable>
@@ -369,8 +378,8 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
           >
             <Ionicons
               name={recurring ? "briefcase-outline" : "star-outline"}
-              size={26}
-              color={recurring ? "#F28A00" : "#EFA500"}
+              size={25}
+              color={recurring ? theme.colors.warning : theme.colors.primary}
             />
           </View>
 
@@ -402,7 +411,7 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
 
               <Text style={styles.firstMeta}>
                 {isReceived
-                  ? `Recebida em ${formatDayMonth(income.receivedDate as string)}`
+                  ? `Recebida em ${formatDayMonth(income.receivedDate!)}`
                   : `Recebimento em ${formatDayMonth(income.expectedDate)}`}
               </Text>
 
@@ -421,7 +430,12 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
                 {formatMoney(income.amount)}
               </Text>
 
-              <Ionicons name="chevron-forward" size={20} color="#52719B" style={styles.chevron} />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={theme.colors.textSecondary}
+                style={styles.chevron}
+              />
             </View>
           </View>
         </Pressable>
@@ -430,7 +444,7 @@ export function IncomeRow({ income, onPress, onToggleReceipt, onDelete }: Income
   );
 }
 
-function getIncomeStatus(income: Income): IncomeStatus {
+function getIncomeStatus(income: Income, theme: AppTheme): IncomeStatus {
   if (income.receivedDate !== null) {
     return {
       label: "Recebida",
@@ -507,169 +521,171 @@ function formatShortCompetence(value: string): string {
   return `${months[monthNumber - 1]}/${year}`;
 }
 
-const styles = StyleSheet.create({
-  swipeContainer: {
-    position: "relative",
-    overflow: "hidden",
-    borderRadius: 22,
-    backgroundColor: theme.colors.surface,
-    ...theme.shadow.card
-  },
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    swipeContainer: {
+      position: "relative",
+      overflow: "hidden",
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.card
+    },
 
-  fullActionBackground: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0
-  },
+    fullActionBackground: {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0
+    },
 
-  receiptBackground: {
-    backgroundColor: theme.colors.success
-  },
+    receiptBackground: {
+      backgroundColor: theme.colors.success
+    },
 
-  deleteBackground: {
-    backgroundColor: theme.colors.danger
-  },
+    deleteBackground: {
+      backgroundColor: theme.colors.danger
+    },
 
-  actionContainer: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    width: ACTION_WIDTH,
-    zIndex: 1
-  },
+    actionContainer: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      width: ACTION_WIDTH,
+      zIndex: 1
+    },
 
-  receiptAction: {
-    left: 0
-  },
+    receiptAction: {
+      left: 0
+    },
 
-  deleteAction: {
-    right: 0
-  },
+    deleteAction: {
+      right: 0
+    },
 
-  actionButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3
-  },
+    actionButton: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 3
+    },
 
-  actionPressed: {
-    opacity: 0.78
-  },
+    actionPressed: {
+      opacity: 0.78
+    },
 
-  actionText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#FFFFFF"
-  },
+    actionText: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: theme.colors.onPrimary
+    },
 
-  animatedRow: {
-    zIndex: 2,
-    backgroundColor: theme.colors.surface
-  },
+    animatedRow: {
+      zIndex: 2,
+      backgroundColor: theme.colors.surface
+    },
 
-  row: {
-    minHeight: 118,
-    flexDirection: "row",
-    paddingLeft: 13,
-    backgroundColor: theme.colors.surface
-  },
+    row: {
+      minHeight: 118,
+      flexDirection: "row",
+      paddingLeft: 13,
+      backgroundColor: theme.colors.surface
+    },
 
-  pressed: {
-    opacity: 0.65
-  },
+    pressed: {
+      opacity: 0.65
+    },
 
-  iconContainer: {
-    width: 48,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-    borderRadius: 15
-  },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      alignItems: "center",
+      justifyContent: "center",
+      alignSelf: "center",
+      borderRadius: 15
+    },
 
-  recurringIcon: {
-    backgroundColor: "#FFF2DF"
-  },
+    recurringIcon: {
+      backgroundColor: theme.colors.warningSoft
+    },
 
-  oneOffIcon: {
-    backgroundColor: "#FFF5D9"
-  },
+    oneOffIcon: {
+      backgroundColor: theme.colors.primarySoft
+    },
 
-  content: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 13,
-    paddingRight: 13,
-    paddingVertical: 12
-  },
+    content: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      marginLeft: 13,
+      paddingRight: 13,
+      paddingVertical: 12
+    },
 
-  textContent: {
-    flex: 1,
-    minWidth: 0,
-    paddingRight: 8
-  },
+    textContent: {
+      flex: 1,
+      minWidth: 0,
+      paddingRight: 8
+    },
 
-  name: {
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: "700",
-    letterSpacing: -0.3,
-    color: theme.colors.text
-  },
+    name: {
+      fontSize: 15,
+      lineHeight: 19,
+      fontWeight: "700",
+      letterSpacing: -0.3,
+      color: theme.colors.text
+    },
 
-  statusBadge: {
-    alignSelf: "flex-start",
-    marginTop: 5,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3
-  },
+    statusBadge: {
+      alignSelf: "flex-start",
+      marginTop: 5,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 3
+    },
 
-  statusText: {
-    fontSize: 10,
-    lineHeight: 12,
-    fontWeight: "700"
-  },
+    statusText: {
+      fontSize: 10,
+      lineHeight: 12,
+      fontWeight: "700"
+    },
 
-  firstMeta: {
-    marginTop: 5,
-    fontSize: 12,
-    lineHeight: 16,
-    color: "#526D94"
-  },
+    firstMeta: {
+      marginTop: 5,
+      fontSize: 12,
+      lineHeight: 16,
+      color: theme.colors.textSecondary
+    },
 
-  meta: {
-    marginTop: 1,
-    fontSize: 12,
-    lineHeight: 16,
-    color: "#526D94"
-  },
+    meta: {
+      marginTop: 1,
+      fontSize: 12,
+      lineHeight: 16,
+      color: theme.colors.textSecondary
+    },
 
-  rightContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    maxWidth: 122
-  },
+    rightContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      maxWidth: 122
+    },
 
-  amount: {
-    flexShrink: 1,
-    fontSize: 15,
-    lineHeight: 19,
-    textAlign: "right",
-    fontWeight: "800",
-    color: "#07143A"
-  },
+    amount: {
+      flexShrink: 1,
+      fontSize: 15,
+      lineHeight: 19,
+      textAlign: "right",
+      fontWeight: "800",
+      color: theme.colors.text
+    },
 
-  receivedAmount: {
-    color: theme.colors.success
-  },
+    receivedAmount: {
+      color: theme.colors.success
+    },
 
-  chevron: {
-    marginLeft: 7
-  }
-});
+    chevron: {
+      marginLeft: 7
+    }
+  });
+}
